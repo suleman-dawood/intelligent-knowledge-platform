@@ -107,4 +107,8 @@ venv.bak/
 # Project specific
 data/neo4j/
 data/mongodb/
-data/vector_db/ 
+data/vector_db/
+
+# SSH Keys
+Agentic
+Agentic.pub 
