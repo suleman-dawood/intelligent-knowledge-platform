@@ -17,5 +17,8 @@ USER appuser
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 
+# Expose port
+EXPOSE 3100
+
 # Run the UI agent
-CMD ["python", "-m", "agents.ui.agent"] 
+CMD ["python", "-m", "agents.ui.agent", "--agent-id", "ui-main", "--config", "coordinator/config.yml"] 
