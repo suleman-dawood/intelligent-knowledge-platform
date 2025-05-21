@@ -24,6 +24,26 @@ const NODE_SIZES: Record<string, number> = {
   default: 7
 };
 
+// Extended node type with D3 simulation properties
+interface SimulationNode {
+  id: string;
+  label: string; 
+  type: string;
+  properties: Record<string, any>;
+  x?: number;
+  y?: number;
+  fx?: number | null;
+  fy?: number | null;
+}
+
+// Extended edge type with D3 simulation properties
+interface SimulationLink {
+  source: string | SimulationNode;
+  target: string | SimulationNode;
+  label: string;
+  properties: Record<string, any>;
+}
+
 interface KnowledgeGraphProps {
   data?: GraphData;
   onNodeClick?: (nodeId: string) => void;
@@ -60,8 +80,8 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
     const height = +svg.style('height').replace('px', '');
     
     // Create the simulation
-    const simulation = d3.forceSimulation()
-      .force("link", d3.forceLink().id(d => (d as any).id).distance(100))
+    const simulation = d3.forceSimulation<SimulationNode>()
+      .force("link", d3.forceLink<SimulationNode, SimulationLink>().id(d => d.id).distance(100))
       .force("charge", d3.forceManyBody().strength(-300))
       .force("center", d3.forceCenter(width / 2, height / 2))
       .force("collide", d3.forceCollide().radius(30));
@@ -120,7 +140,7 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
       .on("mouseout", () => {
         setHoveredNode(null);
       })
-      .call(d3.drag()
+      .call(d3.drag<SVGCircleElement, SimulationNode>()
         .on("start", dragstarted)
         .on("drag", dragged)
         .on("end", dragended) as any);
@@ -138,42 +158,83 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
       .text(d => d.label);
     
     // Set up simulation
-    simulation.nodes(graphData.nodes as any);
-    (simulation.force("link") as d3.ForceLink<any, any>).links(graphData.edges);
+    simulation.nodes(graphData.nodes as unknown as SimulationNode[]);
+    (simulation.force("link") as d3.ForceLink<SimulationNode, SimulationLink>)
+      .links(graphData.edges.map(edge => ({
+        ...edge,
+        source: typeof edge.source === 'string' ? edge.source : (edge.source as any).id,
+        target: typeof edge.target === 'string' ? edge.target : (edge.target as any).id
+      })));
     
     simulation.on("tick", () => {
       link
-        .attr("x1", d => d.source.x)
-        .attr("y1", d => d.source.y)
-        .attr("x2", d => d.target.x)
-        .attr("y2", d => d.target.y);
+        .attr("x1", d => {
+          const source = typeof d.source === 'string' 
+            ? simulation.nodes().find(n => n.id === d.source) 
+            : d.source as SimulationNode;
+          return source?.x || 0;
+        })
+        .attr("y1", d => {
+          const source = typeof d.source === 'string' 
+            ? simulation.nodes().find(n => n.id === d.source) 
+            : d.source as SimulationNode;
+          return source?.y || 0;
+        })
+        .attr("x2", d => {
+          const target = typeof d.target === 'string' 
+            ? simulation.nodes().find(n => n.id === d.target) 
+            : d.target as SimulationNode;
+          return target?.x || 0;
+        })
+        .attr("y2", d => {
+          const target = typeof d.target === 'string' 
+            ? simulation.nodes().find(n => n.id === d.target) 
+            : d.target as SimulationNode;
+          return target?.y || 0;
+        });
       
       node
-        .attr("cx", d => d.x)
-        .attr("cy", d => d.y);
+        .attr("cx", d => (d as unknown as SimulationNode).x || 0)
+        .attr("cy", d => (d as unknown as SimulationNode).y || 0);
       
       nodeText
-        .attr("x", d => d.x)
-        .attr("y", d => d.y);
+        .attr("x", d => (d as unknown as SimulationNode).x || 0)
+        .attr("y", d => (d as unknown as SimulationNode).y || 0);
       
       linkText
-        .attr("x", d => (d.source.x + d.target.x) / 2)
-        .attr("y", d => (d.source.y + d.target.y) / 2);
+        .attr("x", d => {
+          const source = typeof d.source === 'string' 
+            ? simulation.nodes().find(n => n.id === d.source) 
+            : d.source as SimulationNode;
+          const target = typeof d.target === 'string' 
+            ? simulation.nodes().find(n => n.id === d.target) 
+            : d.target as SimulationNode;
+          return ((source?.x || 0) + (target?.x || 0)) / 2;
+        })
+        .attr("y", d => {
+          const source = typeof d.source === 'string' 
+            ? simulation.nodes().find(n => n.id === d.source) 
+            : d.source as SimulationNode;
+          const target = typeof d.target === 'string' 
+            ? simulation.nodes().find(n => n.id === d.target) 
+            : d.target as SimulationNode;
+          return ((source?.y || 0) + (target?.y || 0)) / 2;
+        });
     });
     
     // Drag functions
-    function dragstarted(event: any, d: any) {
+    function dragstarted(event: d3.D3DragEvent<SVGCircleElement, SimulationNode, SimulationNode>, d: SimulationNode) {
       if (!event.active) simulation.alphaTarget(0.3).restart();
       d.fx = d.x;
       d.fy = d.y;
     }
     
-    function dragged(event: any, d: any) {
+    function dragged(event: d3.D3DragEvent<SVGCircleElement, SimulationNode, SimulationNode>, d: SimulationNode) {
       d.fx = event.x;
       d.fy = event.y;
     }
     
-    function dragended(event: any, d: any) {
+    function dragended(event: d3.D3DragEvent<SVGCircleElement, SimulationNode, SimulationNode>, d: SimulationNode) {
       if (!event.active) simulation.alphaTarget(0);
       d.fx = null;
       d.fy = null;
