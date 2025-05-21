@@ -109,6 +109,17 @@ data/neo4j/
 data/mongodb/
 data/vector_db/
 
+# Node.js
+node_modules/
+.next/
+out/
+.cache/
+.npm/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
 # SSH Keys
 Agentic
 Agentic.pub 
