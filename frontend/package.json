@@ -10,6 +10,7 @@
     "postinstall": "npx --yes typesync"
   },
   "dependencies": {
+    "@heroicons/react": "^2.2.0",
     "autoprefixer": "^10.4.14",
     "axios": "^1.4.0",
     "chart.js": "^4.3.3",
