@@ -51,20 +51,19 @@ async def start_agent(agent_type: str, agent_id: str):
         from agents.scraper.agent import ScraperAgent
         agent = ScraperAgent(agent_id)
     elif agent_type == "processor":
-        # This would be implemented in a real system
-        logger.warning(f"Agent type {agent_type} not implemented yet")
-        return None
+        from agents.processor.agent import ProcessorAgent
+        agent = ProcessorAgent(agent_id)
     elif agent_type == "knowledge":
-        # This would be implemented in a real system
-        logger.warning(f"Agent type {agent_type} not implemented yet")
-        return None
+        from agents.knowledge.agent import KnowledgeAgent
+        agent = KnowledgeAgent(agent_id)
     elif agent_type == "learning":
-        # This would be implemented in a real system
-        logger.warning(f"Agent type {agent_type} not implemented yet")
-        return None
+        from agents.learning.agent import LearningAgent
+        agent = LearningAgent(agent_id)
     elif agent_type == "ui":
-        # This would be implemented in a real system
-        logger.warning(f"Agent type {agent_type} not implemented yet")
+        from agents.ui.agent import UIAgent
+        agent = UIAgent(agent_id)
+    elif agent_type == "blockchain":
+        logger.warning(f"Blockchain agent functionality is not implemented yet")
         return None
     else:
         logger.error(f"Unknown agent type: {agent_type}")
@@ -86,6 +85,7 @@ async def main():
     parser.add_argument("--knowledge-agents", type=int, default=0, help="Number of knowledge agents to start")
     parser.add_argument("--learning-agents", type=int, default=0, help="Number of learning agents to start")
     parser.add_argument("--ui-agents", type=int, default=0, help="Number of UI agents to start")
+    parser.add_argument("--blockchain-agents", type=int, default=0, help="Number of blockchain agents to start")
     
     args = parser.parse_args()
     
@@ -124,6 +124,12 @@ async def main():
     # UI agents
     for i in range(args.ui_agents):
         agent = await start_agent("ui", f"ui-{i+1}")
+        if agent:
+            agents.append(agent)
+    
+    # Blockchain agents
+    for i in range(args.blockchain_agents):
+        agent = await start_agent("blockchain", f"blockchain-{i+1}")
         if agent:
             agents.append(agent)
     
