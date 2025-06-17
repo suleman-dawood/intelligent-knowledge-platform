@@ -12,7 +12,7 @@ from typing import Dict, List, Any, Optional
 from datetime import datetime
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, Query
+from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, Query, Body
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -173,6 +173,45 @@ def create_api(coordinator):
     async def get_agents(coordinator=Depends(get_coordinator)):
         """Get agent status information."""
         return await coordinator.agent_manager.get_agent_status()
+    
+    @app.post("/api/process-content", response_model=Dict[str, str])
+    async def process_content(
+        request: Dict[str, Any] = Body(...),
+        coordinator=Depends(get_coordinator)
+    ):
+        """Process new content submitted by users."""
+        try:
+            content_type = request.get("type")
+            title = request.get("title")
+            
+            # Prepare task data based on content type
+            task_data = {
+                "title": title,
+                "type": content_type
+            }
+            
+            # Determine task type and add specific data
+            if content_type == "text" or content_type == "academic":
+                task_data["content"] = request.get("content")
+                task_type = "process_text"
+            elif content_type == "url":
+                task_data["url"] = request.get("url")
+                task_type = "scrape_url"
+            elif content_type == "pdf":
+                task_data["filename"] = request.get("filename")
+                task_data["size"] = request.get("size")
+                task_type = "process_pdf"
+            else:
+                raise HTTPException(status_code=400, detail=f"Unsupported content type: {content_type}")
+            
+            # Submit the task
+            task_id = await coordinator.submit_task(task_type, task_data)
+            
+            return {"task_id": task_id, "status": "submitted"}
+            
+        except Exception as e:
+            logger.error(f"Error processing content: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
     
     @app.get("/search", response_model=List[SearchResult])
     async def search_knowledge(
