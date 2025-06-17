@@ -2,20 +2,26 @@
 # -*- coding: utf-8 -*-
 
 """
-Academic scraper module for extracting content from academic papers and repositories.
+Academic scraper module for extracting content from academic sources.
 """
 
 import logging
 import asyncio
 import time
+import re
 from typing import Dict, List, Any, Optional
-import json
+from datetime import datetime
+
+# Academic libraries
+import arxiv
+from scholarly import scholarly, ProxyGenerator
+import bibtexparser
 
 logger = logging.getLogger(__name__)
 
 
 class AcademicScraper:
-    """Scraper for extracting content from academic repositories and papers."""
+    """Scraper for extracting content from academic sources."""
     
     def __init__(self, config: Dict[str, Any]):
         """Initialize the academic scraper.
@@ -25,239 +31,344 @@ class AcademicScraper:
         """
         self.config = config
         
-        # API keys would be loaded from configuration
-        self.apis = {
-            "arxiv": {},
-            "semantic_scholar": {},
-            "google_scholar": {},
-            "pubmed": {}
-        }
+        # Configure scholarly proxy if available
+        try:
+            pg = ProxyGenerator()
+            if pg.FreeProxies():
+                scholarly.use_proxy(pg)
+                logger.info("Scholarly proxy configured")
+        except Exception as e:
+            logger.warning(f"Could not configure scholarly proxy: {e}")
         
-        # Rate limiting settings
-        self.rate_limits = {
-            "arxiv": 3,  # requests per second
-            "semantic_scholar": 5,
-            "google_scholar": 1,
-            "pubmed": 3
-        }
-        
-        # Last request timestamps
-        self.last_requests = {
-            "arxiv": 0,
-            "semantic_scholar": 0,
-            "google_scholar": 0,
-            "pubmed": 0
-        }
+        # Rate limiting
+        self.rate_limit = config.get('academic_scraper', {}).get('rate_limit', 2)  # requests per second
+        self.last_request_time = 0
         
         logger.info("Academic scraper initialized")
     
     async def scrape(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Scrape content from academic sources.
+        """Scrape academic content.
         
         Args:
             task_data: Task data containing scraping parameters
             
         Returns:
-            Scraped content
+            Scraped academic content
         """
         source = task_data.get('source', 'arxiv')
         query = task_data.get('query')
         paper_id = task_data.get('paper_id')
         author = task_data.get('author')
         max_results = task_data.get('max_results', 10)
-        extract_citations = task_data.get('extract_citations', False)
-        extract_references = task_data.get('extract_references', False)
+        include_abstract = task_data.get('include_abstract', True)
+        include_full_text = task_data.get('include_full_text', False)
         
         if not query and not paper_id and not author:
-            raise ValueError("Either query, paper_id, or author is required")
-            
+            raise ValueError("Query, paper_id, or author is required")
+        
         logger.info(f"Scraping academic content from {source}")
         
         # Apply rate limiting
-        self._apply_rate_limit(source)
+        self._apply_rate_limit()
         
-        # Choose the appropriate method based on the source
-        if source == "arxiv":
-            result = await self._scrape_arxiv(task_data)
-        elif source == "semantic_scholar":
-            result = await self._scrape_semantic_scholar(task_data)
-        elif source == "google_scholar":
-            result = await self._scrape_google_scholar(task_data)
-        elif source == "pubmed":
-            result = await self._scrape_pubmed(task_data)
+        if source.lower() == 'arxiv':
+            return await self._scrape_arxiv(query, paper_id, max_results, include_abstract, include_full_text)
+        elif source.lower() == 'google_scholar':
+            return await self._scrape_google_scholar(query, author, max_results, include_abstract)
+        elif source.lower() == 'bibtex':
+            return await self._parse_bibtex(task_data.get('bibtex_content', ''))
         else:
             raise ValueError(f"Unsupported academic source: {source}")
-            
-        return result
     
-    async def _scrape_arxiv(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Scrape content from arXiv.
+    async def _scrape_arxiv(
+        self, 
+        query: Optional[str], 
+        paper_id: Optional[str], 
+        max_results: int, 
+        include_abstract: bool,
+        include_full_text: bool
+    ) -> Dict[str, Any]:
+        """Scrape papers from arXiv.
         
         Args:
-            task_data: Task data containing scraping parameters
+            query: Search query
+            paper_id: Specific paper ID
+            max_results: Maximum number of results
+            include_abstract: Whether to include abstracts
+            include_full_text: Whether to download full text PDFs
             
         Returns:
-            Scraped content
+            Scraped arXiv content
         """
-        # In a real implementation, you would use the arXiv API
-        # For this placeholder, we'll return dummy data
+        papers = []
         
-        # Simulate API call delay
-        await asyncio.sleep(1)
+        try:
+            if paper_id:
+                # Search for specific paper
+                search = arxiv.Search(id_list=[paper_id])
+            else:
+                # Search by query
+                search = arxiv.Search(
+                    query=query,
+                    max_results=max_results,
+                    sort_by=arxiv.SortCriterion.SubmittedDate,
+                    sort_order=arxiv.SortOrder.Descending
+                )
+            
+            for paper in search.results():
+                paper_data = {
+                    "id": paper.entry_id,
+                    "arxiv_id": paper.get_short_id(),
+                    "title": paper.title,
+                    "authors": [author.name for author in paper.authors],
+                    "published": paper.published.isoformat() if paper.published else None,
+                    "updated": paper.updated.isoformat() if paper.updated else None,
+                    "categories": paper.categories,
+                    "primary_category": paper.primary_category,
+                    "links": {
+                        "abstract": paper.entry_id,
+                        "pdf": paper.pdf_url
+                    },
+                    "journal_ref": paper.journal_ref,
+                    "doi": paper.doi,
+                    "comment": paper.comment
+                }
+                
+                if include_abstract:
+                    paper_data["abstract"] = paper.summary
+                
+                if include_full_text:
+                    try:
+                        # Download and extract PDF content
+                        pdf_content = await self._download_and_extract_pdf(paper.pdf_url)
+                        paper_data["full_text"] = pdf_content
+                    except Exception as e:
+                        logger.warning(f"Could not extract full text for {paper.get_short_id()}: {e}")
+                        paper_data["full_text"] = None
+                
+                papers.append(paper_data)
+        
+        except Exception as e:
+            logger.error(f"Error scraping arXiv: {e}")
+            raise
         
         return {
             "source": "arxiv",
-            "query": task_data.get('query'),
-            "paper_id": task_data.get('paper_id'),
-            "results": [
-                {
-                    "id": "2101.12345",
-                    "title": "Sample ArXiv Paper Title",
-                    "authors": ["Author One", "Author Two"],
-                    "abstract": "This is a sample abstract for an ArXiv paper.",
-                    "published_date": "2023-05-15",
-                    "categories": ["cs.AI", "cs.LG"],
-                    "pdf_url": "https://arxiv.org/pdf/2101.12345.pdf",
-                    "content": "This is a placeholder for the full text content of the paper."
-                }
-            ],
-            "metadata": {
-                "total_results": 1,
-                "timestamp": time.time()
-            }
+            "query": query,
+            "paper_id": paper_id,
+            "count": len(papers),
+            "papers": papers
         }
     
-    async def _scrape_semantic_scholar(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Scrape content from Semantic Scholar.
+    async def _scrape_google_scholar(
+        self, 
+        query: Optional[str], 
+        author: Optional[str], 
+        max_results: int,
+        include_abstract: bool
+    ) -> Dict[str, Any]:
+        """Scrape papers from Google Scholar.
         
         Args:
-            task_data: Task data containing scraping parameters
+            query: Search query
+            author: Author name
+            max_results: Maximum number of results
+            include_abstract: Whether to include abstracts
             
         Returns:
-            Scraped content
+            Scraped Google Scholar content
         """
-        # In a real implementation, you would use the Semantic Scholar API
-        # For this placeholder, we'll return dummy data
+        papers = []
         
-        # Simulate API call delay
-        await asyncio.sleep(1)
-        
-        return {
-            "source": "semantic_scholar",
-            "query": task_data.get('query'),
-            "paper_id": task_data.get('paper_id'),
-            "results": [
-                {
-                    "id": "1234567890",
-                    "title": "Sample Semantic Scholar Paper Title",
-                    "authors": ["Author One", "Author Two", "Author Three"],
-                    "abstract": "This is a sample abstract for a Semantic Scholar paper.",
-                    "published_date": "2023-06-20",
-                    "venue": "NeurIPS 2023",
-                    "year": 2023,
-                    "citation_count": 42,
-                    "url": "https://www.semanticscholar.org/paper/1234567890",
-                    "content": "This is a placeholder for the full text content of the paper."
-                }
-            ],
-            "metadata": {
-                "total_results": 1,
-                "timestamp": time.time()
-            }
-        }
-    
-    async def _scrape_google_scholar(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Scrape content from Google Scholar.
-        
-        Args:
-            task_data: Task data containing scraping parameters
+        try:
+            if author:
+                # Search for author
+                search_query = scholarly.search_author(author)
+                author_info = next(search_query, None)
+                
+                if author_info:
+                    author_info = scholarly.fill(author_info)
+                    
+                    # Get publications
+                    for i, pub in enumerate(author_info['publications']):
+                        if i >= max_results:
+                            break
+                        
+                        try:
+                            pub_filled = scholarly.fill(pub)
+                            
+                            paper_data = {
+                                "title": pub_filled.get('title', ''),
+                                "authors": pub_filled.get('author', '').split(' and ') if pub_filled.get('author') else [],
+                                "year": pub_filled.get('year'),
+                                "venue": pub_filled.get('venue', ''),
+                                "citations": pub_filled.get('num_citations', 0),
+                                "url": pub_filled.get('pub_url', ''),
+                                "scholar_id": pub_filled.get('author_pub_id', ''),
+                                "bibtex": pub_filled.get('bibtex', '')
+                            }
+                            
+                            if include_abstract:
+                                paper_data["abstract"] = pub_filled.get('abstract', '')
+                            
+                            papers.append(paper_data)
+                            
+                            # Rate limiting for Google Scholar
+                            await asyncio.sleep(1)
+                            
+                        except Exception as e:
+                            logger.warning(f"Error processing publication: {e}")
             
-        Returns:
-            Scraped content
-        """
-        # Note: Google Scholar doesn't have an official API, so actual implementation
-        # would require web scraping, which may violate terms of service
+            elif query:
+                # Search by query
+                search_query = scholarly.search_pubs(query)
+                
+                for i, pub in enumerate(search_query):
+                    if i >= max_results:
+                        break
+                    
+                    try:
+                        pub_filled = scholarly.fill(pub)
+                        
+                        paper_data = {
+                            "title": pub_filled.get('title', ''),
+                            "authors": pub_filled.get('author', '').split(' and ') if pub_filled.get('author') else [],
+                            "year": pub_filled.get('year'),
+                            "venue": pub_filled.get('venue', ''),
+                            "citations": pub_filled.get('num_citations', 0),
+                            "url": pub_filled.get('pub_url', ''),
+                            "scholar_id": pub_filled.get('author_pub_id', ''),
+                            "bibtex": pub_filled.get('bibtex', '')
+                        }
+                        
+                        if include_abstract:
+                            paper_data["abstract"] = pub_filled.get('abstract', '')
+                        
+                        papers.append(paper_data)
+                        
+                        # Rate limiting for Google Scholar
+                        await asyncio.sleep(1)
+                        
+                    except Exception as e:
+                        logger.warning(f"Error processing publication: {e}")
         
-        # Simulate API call delay
-        await asyncio.sleep(1)
+        except Exception as e:
+            logger.error(f"Error scraping Google Scholar: {e}")
+            raise
         
         return {
             "source": "google_scholar",
-            "query": task_data.get('query'),
-            "author": task_data.get('author'),
-            "results": [
-                {
-                    "title": "Sample Google Scholar Paper Title",
-                    "authors": ["Author One", "Author Two"],
-                    "publication": "Journal of Examples, Vol. 42",
-                    "year": 2023,
-                    "cited_by_count": 18,
-                    "url": "https://example.com/paper1",
-                    "snippet": "This is a sample snippet from the paper showing the context of search terms..."
-                }
-            ],
-            "metadata": {
-                "total_results": 1,
-                "timestamp": time.time()
-            }
+            "query": query,
+            "author": author,
+            "count": len(papers),
+            "papers": papers
         }
     
-    async def _scrape_pubmed(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Scrape content from PubMed.
+    async def _parse_bibtex(self, bibtex_content: str) -> Dict[str, Any]:
+        """Parse BibTeX content.
         
         Args:
-            task_data: Task data containing scraping parameters
+            bibtex_content: BibTeX content string
             
         Returns:
-            Scraped content
+            Parsed BibTeX data
         """
-        # In a real implementation, you would use the PubMed API
-        # For this placeholder, we'll return dummy data
+        papers = []
         
-        # Simulate API call delay
-        await asyncio.sleep(1)
+        try:
+            bib_database = bibtexparser.loads(bibtex_content)
+            
+            for entry in bib_database.entries:
+                paper_data = {
+                    "id": entry.get('ID', ''),
+                    "type": entry.get('ENTRYTYPE', ''),
+                    "title": entry.get('title', ''),
+                    "authors": self._parse_authors(entry.get('author', '')),
+                    "year": entry.get('year', ''),
+                    "journal": entry.get('journal', ''),
+                    "booktitle": entry.get('booktitle', ''),
+                    "volume": entry.get('volume', ''),
+                    "number": entry.get('number', ''),
+                    "pages": entry.get('pages', ''),
+                    "publisher": entry.get('publisher', ''),
+                    "doi": entry.get('doi', ''),
+                    "url": entry.get('url', ''),
+                    "abstract": entry.get('abstract', ''),
+                    "keywords": entry.get('keywords', '').split(',') if entry.get('keywords') else []
+                }
+                
+                papers.append(paper_data)
+        
+        except Exception as e:
+            logger.error(f"Error parsing BibTeX: {e}")
+            raise
         
         return {
-            "source": "pubmed",
-            "query": task_data.get('query'),
-            "paper_id": task_data.get('paper_id'),
-            "results": [
-                {
-                    "pmid": "34567890",
-                    "title": "Sample PubMed Paper Title",
-                    "authors": ["Author One", "Author Two", "Author Three", "Author Four"],
-                    "abstract": "This is a sample abstract for a PubMed paper.",
-                    "published_date": "2023-07-10",
-                    "journal": "Journal of Medical Examples",
-                    "volume": "42",
-                    "issue": "7",
-                    "pages": "123-145",
-                    "doi": "10.1234/jme.2023.42.7.123",
-                    "url": "https://pubmed.ncbi.nlm.nih.gov/34567890/",
-                    "content": "This is a placeholder for the full text content of the paper."
-                }
-            ],
-            "metadata": {
-                "total_results": 1,
-                "timestamp": time.time()
-            }
+            "source": "bibtex",
+            "count": len(papers),
+            "papers": papers
         }
     
-    def _apply_rate_limit(self, source: str) -> None:
-        """Apply rate limiting for the specified source.
+    async def _download_and_extract_pdf(self, pdf_url: str) -> Optional[str]:
+        """Download and extract text from PDF.
         
         Args:
-            source: Academic source name
+            pdf_url: URL of the PDF
+            
+        Returns:
+            Extracted text content or None
         """
-        if source not in self.rate_limits:
-            return
+        try:
+            # Use the PDF scraper to extract content
+            from agents.scraper.pdf_scraper import PDFScraper
             
-        current_time = time.time()
-        time_since_last_request = current_time - self.last_requests.get(source, 0)
+            pdf_scraper = PDFScraper(self.config)
+            result = await pdf_scraper.scrape({
+                'url': pdf_url,
+                'extract_images': False,
+                'extract_tables': False,
+                'extract_metadata': False
+            })
+            
+            return result.get('content', '')
         
-        # If we've made a request too recently, sleep for the remaining time
-        if time_since_last_request < 1.0 / self.rate_limits[source]:
-            sleep_time = (1.0 / self.rate_limits[source]) - time_since_last_request
-            time.sleep(sleep_time)
+        except Exception as e:
+            logger.warning(f"Error extracting PDF content: {e}")
+            return None
+    
+    def _parse_authors(self, author_string: str) -> List[str]:
+        """Parse author string into list of individual authors.
+        
+        Args:
+            author_string: String containing author names
             
-        self.last_requests[source] = time.time() 
+        Returns:
+            List of author names
+        """
+        if not author_string:
+            return []
+        
+        # Handle common BibTeX author separators
+        authors = re.split(r'\s+and\s+|\s*,\s*', author_string)
+        
+        # Clean up author names
+        cleaned_authors = []
+        for author in authors:
+            author = author.strip()
+            if author:
+                # Remove curly braces common in BibTeX
+                author = re.sub(r'[{}]', '', author)
+                cleaned_authors.append(author)
+        
+        return cleaned_authors
+    
+    def _apply_rate_limit(self) -> None:
+        """Apply rate limiting to avoid overwhelming academic APIs."""
+        current_time = time.time()
+        time_since_last = current_time - self.last_request_time
+        
+        if time_since_last < (1.0 / self.rate_limit):
+            sleep_time = (1.0 / self.rate_limit) - time_since_last
+            time.sleep(sleep_time)
+        
+        self.last_request_time = time.time() 

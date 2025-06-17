@@ -15,6 +15,12 @@ from nltk.tokenize import word_tokenize, sent_tokenize
 from nltk import pos_tag, ne_chunk
 from nltk.chunk import tree2conlltags
 
+# Import DeepSeek LLM client
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from coordinator.llm_client import get_llm_client
+
 # Configure logging
 logger = logging.getLogger(__name__)
 
@@ -41,6 +47,15 @@ class EntityRecognizer:
             config: Configuration dictionary
         """
         self.config = config
+        
+        # Initialize LLM client if available
+        self.llm_client = None
+        try:
+            if config.get('llm', {}).get('deepseek_api_key'):
+                self.llm_client = get_llm_client(config)
+                logger.info("DeepSeek LLM client initialized for entity recognition")
+        except Exception as e:
+            logger.warning(f"Could not initialize LLM client: {e}")
         
         # Entity type mappings
         self.entity_types = {
@@ -74,6 +89,7 @@ class EntityRecognizer:
         text = task_data.get('text')
         include_pos = task_data.get('include_pos', False)
         extract_regex = task_data.get('extract_regex', True)
+        use_llm = task_data.get('use_llm', True)
         
         if not text:
             raise ValueError("Text content is required")
@@ -88,6 +104,15 @@ class EntityRecognizer:
         
         # Extract named entities using NLTK
         entities, pos_tags = await self._extract_entities_nltk(text)
+        
+        # Extract entities using LLM if available and requested
+        if use_llm and self.llm_client:
+            try:
+                llm_entities = await self._extract_entities_llm(text)
+                # Merge LLM entities with NLTK entities
+                entities = self._merge_entities(entities, llm_entities)
+            except Exception as e:
+                logger.warning(f"LLM entity extraction failed: {e}")
         
         # Group entities by type
         grouped_entities = {}
@@ -209,6 +234,73 @@ class EntityRecognizer:
             "original_type": entity_type,
             "context": context
         })
+    
+    async def _extract_entities_llm(self, text: str) -> List[Dict[str, Any]]:
+        """Extract named entities using DeepSeek LLM.
+        
+        Args:
+            text: Text to analyze
+            
+        Returns:
+            List of entities
+        """
+        if not self.llm_client:
+            return []
+        
+        try:
+            # Limit text length for LLM processing
+            if len(text) > 4000:
+                text = text[:4000] + "..."
+            
+            llm_entities = await self.llm_client.extract_entities(text)
+            
+            # Convert LLM format to our format
+            entities = []
+            for entity in llm_entities:
+                entities.append({
+                    "text": entity.get("text", ""),
+                    "type": entity.get("type", "").lower(),
+                    "start": entity.get("start", 0),
+                    "end": entity.get("end", 0),
+                    "confidence": 0.8,  # Default confidence for LLM
+                    "source": "llm",
+                    "context": text[max(0, entity.get("start", 0) - 50):entity.get("end", 0) + 50]
+                })
+            
+            return entities
+            
+        except Exception as e:
+            logger.error(f"Error extracting entities with LLM: {e}")
+            return []
+    
+    def _merge_entities(self, nltk_entities: List[Dict[str, Any]], llm_entities: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Merge entities from different sources, removing duplicates.
+        
+        Args:
+            nltk_entities: Entities from NLTK
+            llm_entities: Entities from LLM
+            
+        Returns:
+            Merged list of entities
+        """
+        merged = []
+        seen_entities = set()
+        
+        # Add NLTK entities first
+        for entity in nltk_entities:
+            entity_key = (entity["text"].lower(), entity["type"])
+            if entity_key not in seen_entities:
+                merged.append(entity)
+                seen_entities.add(entity_key)
+        
+        # Add LLM entities that aren't duplicates
+        for entity in llm_entities:
+            entity_key = (entity["text"].lower(), entity["type"])
+            if entity_key not in seen_entities:
+                merged.append(entity)
+                seen_entities.add(entity_key)
+        
+        return merged
     
     async def _extract_regex_entities(self, text: str) -> Dict[str, List[Dict[str, Any]]]:
         """Extract entities using regular expressions.

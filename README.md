@@ -30,45 +30,85 @@ The platform consists of multiple specialized agents, each responsible for a spe
 
 ## Getting Started
 
+### 🔑 Required API Keys & Accounts
+
+| Service | Required | Free Tier | Purpose | Sign Up Link |
+|---------|----------|-----------|---------|--------------|
+| **DeepSeek** | ✅ Yes | Yes | LLM for entity recognition, sentiment analysis | [platform.deepseek.com](https://platform.deepseek.com/) |
+
+### 🌐 Optional Cloud Services (for production)
+
+| Service | Purpose | Free Tier | Sign Up Link |
+|---------|---------|-----------|--------------|
+| **MongoDB Atlas** | Cloud database | 512MB | [cloud.mongodb.com](https://cloud.mongodb.com/) |
+| **Neo4j AuraDB** | Cloud graph database | Available | [neo4j.com/cloud/aura](https://neo4j.com/cloud/aura/) |
+| **Redis Cloud** | Cloud cache | 30MB | [redis.com/try-free](https://redis.com/try-free/) |
+| **CloudAMQP** | Cloud message broker | Available | [cloudamqp.com](https://www.cloudamqp.com/) |
+| **Weaviate Cloud** | Cloud vector database | Available | [console.weaviate.cloud](https://console.weaviate.cloud/) |
+
 ### Prerequisites
 
-- Python 3.10+
-- Node.js 16+
-- Docker and Docker Compose (for production deployment)
-- MongoDB, Neo4j, Redis, and RabbitMQ (for local development)
+#### Required Software
+- **Python 3.10+**: [Download](https://www.python.org/downloads/)
+- **Node.js 16+**: [Download](https://nodejs.org/en/download/)
+- **Git**: [Download](https://git-scm.com/downloads)
+
+#### Infrastructure (Choose one)
+- **Option A**: Docker Desktop [Download](https://www.docker.com/products/docker-desktop/) (recommended for beginners)
+- **Option B**: Local installation of MongoDB, Neo4j, Redis, RabbitMQ, and Weaviate
 
 ### Installation
 
-#### Local Development
+#### 🚀 Quick Setup (Recommended)
 
-1. Clone the repository:
-   ```
-   git clone https://github.com/yourusername/intelligent-knowledge-platform.git
+**Linux/Mac:**
+```bash
+git clone https://github.com/suleman-dawood/intelligent-knowledge-platform.git
+cd intelligent-knowledge-platform
+chmod +x setup.sh && ./setup.sh
+```
+
+**Windows:**
+```cmd
+git clone https://github.com/suleman-dawood/intelligent-knowledge-platform.git
+cd intelligent-knowledge-platform
+setup.bat
+```
+
+The setup script will:
+- Check prerequisites (Python 3.10+, Node.js 16+)
+- Create virtual environment and install dependencies
+- Set up configuration files
+- Guide you through getting your DeepSeek API key
+
+#### 📋 Manual Setup
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/suleman-dawood/intelligent-knowledge-platform.git
    cd intelligent-knowledge-platform
    ```
 
-2. Create and activate a virtual environment:
+2. **Set up environment:**
+   ```bash
+   cp config.env.example .env
    ```
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   **IMPORTANT:** Get your DeepSeek API key from [https://platform.deepseek.com/](https://platform.deepseek.com/) and add it to `.env`:
+   ```
+   DEEPSEEK_API_KEY=your_actual_deepseek_api_key_here
    ```
 
-3. Install Python dependencies:
-   ```
+3. **Install Python dependencies:**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # Linux/Mac
+   # venv\Scripts\activate  # Windows
    pip install -r requirements.txt
    ```
 
-4. Copy the example environment file and configure it:
-   ```
-   cp env.example .env
-   ```
-   Edit the `.env` file to set your configuration.
-
-5. Install frontend dependencies:
-   ```
-   cd frontend
-   npm install
-   cd ..
+4. **Install frontend dependencies:**
+   ```bash
+   cd frontend && npm install && cd ..
    ```
 
 #### Docker Deployment
@@ -194,5 +234,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Acknowledgments
 
 - Neo4j for graph database
-- Hugging Face for NLP models
+- DeepSeek for LLM capabilities
 - React and Next.js for the frontend framework 

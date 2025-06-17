@@ -67,8 +67,9 @@ def load_config(config_path: Optional[str] = None) -> Dict[str, Any]:
             "max_ui_agents": int(os.getenv("MAX_UI_AGENTS", "1"))
         },
         "llm": {
-            "openai_api_key": os.getenv("OPENAI_API_KEY", ""),
-            "hf_api_key": os.getenv("HF_API_KEY", "")
+            "deepseek_api_key": os.getenv("DEEPSEEK_API_KEY", ""),
+            "deepseek_base_url": os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1"),
+            "model": os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
         },
         "logging": {
             "level": os.getenv("LOG_LEVEL", "INFO"),
