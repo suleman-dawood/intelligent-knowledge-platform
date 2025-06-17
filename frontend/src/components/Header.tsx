@@ -24,7 +24,7 @@ export default function Header() {
         <div className="flex lg:flex-1">
           <Link href="/" className="-m-1.5 p-1.5 flex items-center">
             <span className="sr-only">Intelligent Knowledge Platform</span>
-            <div className="h-8 w-8 bg-primary-600 rounded-md flex items-center justify-center text-white font-bold mr-2">IK</div>
+            <div className="h-8 w-8 bg-blue-600 rounded-md flex items-center justify-center text-white font-bold mr-2">IK</div>
             <span className="text-lg font-semibold text-gray-900">IKP</span>
           </Link>
         </div>
@@ -47,7 +47,7 @@ export default function Header() {
             <Link
               key={item.name}
               href={item.href}
-              className="text-sm font-semibold leading-6 text-gray-900 hover:text-primary-600"
+              className="text-sm font-semibold leading-6 text-gray-900 hover:text-blue-600"
             >
               {item.name}
             </Link>
@@ -56,10 +56,10 @@ export default function Header() {
         
         {/* Desktop sign in */}
         <div className="hidden lg:flex lg:flex-1 lg:justify-end">
-          <Link href="/login" className="text-sm font-semibold leading-6 text-gray-900 hover:text-primary-600 mr-4">
+          <Link href="/login" className="text-sm font-semibold leading-6 text-gray-900 hover:text-blue-600 mr-4">
             Log in
           </Link>
-          <Link href="/signup" className="btn btn-primary">
+          <Link href="/signup" className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
             Sign up
           </Link>
         </div>
@@ -73,7 +73,7 @@ export default function Header() {
             <div className="flex items-center justify-between">
               <Link href="/" className="-m-1.5 p-1.5 flex items-center">
                 <span className="sr-only">Intelligent Knowledge Platform</span>
-                <div className="h-8 w-8 bg-primary-600 rounded-md flex items-center justify-center text-white font-bold mr-2">IK</div>
+                <div className="h-8 w-8 bg-blue-600 rounded-md flex items-center justify-center text-white font-bold mr-2">IK</div>
                 <span className="text-lg font-semibold text-gray-900">IKP</span>
               </Link>
               <button
