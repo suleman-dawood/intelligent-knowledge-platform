@@ -12,7 +12,7 @@ from typing import Dict, List, Any, Optional
 from datetime import datetime
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
+from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -49,6 +49,51 @@ class SystemStatusResponse(BaseModel):
     start_time: Optional[str] = Field(None, description="Timestamp when system was started")
     agents: Dict[str, Dict[str, int]] = Field(..., description="Agent status by type")
     tasks: Dict[str, int] = Field(..., description="Task counts by status")
+
+
+class SearchResult(BaseModel):
+    """Model for search result."""
+    
+    id: str = Field(..., description="Result ID")
+    title: str = Field(..., description="Result title")
+    content: str = Field(..., description="Result content")
+    source: str = Field(..., description="Result source")
+    score: float = Field(..., description="Relevance score")
+    entities: List[Dict[str, Any]] = Field(default_factory=list, description="Associated entities")
+
+
+class Entity(BaseModel):
+    """Model for entity."""
+    
+    id: str = Field(..., description="Entity ID")
+    name: str = Field(..., description="Entity name")
+    type: str = Field(..., description="Entity type")
+    properties: Dict[str, Any] = Field(default_factory=dict, description="Entity properties")
+
+
+class GraphNode(BaseModel):
+    """Model for graph node."""
+    
+    id: str = Field(..., description="Node ID")
+    label: str = Field(..., description="Node label")
+    type: str = Field(..., description="Node type")
+    properties: Dict[str, Any] = Field(default_factory=dict, description="Node properties")
+
+
+class GraphEdge(BaseModel):
+    """Model for graph edge."""
+    
+    source: str = Field(..., description="Source node ID")
+    target: str = Field(..., description="Target node ID")
+    label: str = Field(..., description="Edge label")
+    properties: Dict[str, Any] = Field(default_factory=dict, description="Edge properties")
+
+
+class GraphData(BaseModel):
+    """Model for graph data."""
+    
+    nodes: List[GraphNode] = Field(default_factory=list, description="Graph nodes")
+    edges: List[GraphEdge] = Field(default_factory=list, description="Graph edges")
 
 
 # API configuration
@@ -128,6 +173,94 @@ def create_api(coordinator):
     async def get_agents(coordinator=Depends(get_coordinator)):
         """Get agent status information."""
         return await coordinator.agent_manager.get_agent_status()
+    
+    @app.get("/search", response_model=List[SearchResult])
+    async def search_knowledge(
+        q: str = Query(..., description="Search query"),
+        coordinator=Depends(get_coordinator)
+    ):
+        """Search the knowledge base."""
+        try:
+            # Submit a search task and wait for results
+            task_id = await coordinator.submit_task("search", {"query": q})
+            
+            # For now, return mock results since the search implementation would be complex
+            # In a real implementation, this would query the knowledge graph and vector database
+            return [
+                SearchResult(
+                    id="1",
+                    title=f"Search result for: {q}",
+                    content=f"This is a mock search result for the query '{q}'. In a real implementation, this would contain actual search results from the knowledge graph.",
+                    source="knowledge_graph",
+                    score=0.95,
+                    entities=[]
+                )
+            ]
+        except Exception as e:
+            logger.error(f"Error searching knowledge: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.get("/graph/overview", response_model=GraphData)
+    async def get_graph_overview(coordinator=Depends(get_coordinator)):
+        """Get overview of the knowledge graph."""
+        try:
+            # For now, return mock graph data
+            # In a real implementation, this would query the Neo4j database
+            return GraphData(
+                nodes=[
+                    GraphNode(id="1", label="Sample Entity", type="concept", properties={"description": "A sample entity"}),
+                    GraphNode(id="2", label="Related Entity", type="person", properties={"description": "A related entity"})
+                ],
+                edges=[
+                    GraphEdge(source="1", target="2", label="related_to", properties={"strength": 0.8})
+                ]
+            )
+        except Exception as e:
+            logger.error(f"Error getting graph overview: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.get("/graph/node/{node_id}", response_model=GraphData)
+    async def get_node_graph(
+        node_id: str,
+        depth: int = Query(2, description="Depth of graph traversal"),
+        coordinator=Depends(get_coordinator)
+    ):
+        """Get graph data for a specific node."""
+        try:
+            # For now, return mock graph data
+            # In a real implementation, this would query the Neo4j database for the specific node and its neighbors
+            return GraphData(
+                nodes=[
+                    GraphNode(id=node_id, label=f"Node {node_id}", type="concept", properties={"description": f"Node {node_id} details"}),
+                    GraphNode(id=f"{node_id}_neighbor", label=f"Neighbor of {node_id}", type="related", properties={"description": "A neighboring node"})
+                ],
+                edges=[
+                    GraphEdge(source=node_id, target=f"{node_id}_neighbor", label="connected_to", properties={"strength": 0.9})
+                ]
+            )
+        except Exception as e:
+            logger.error(f"Error getting node graph: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.get("/entities/{entity_id}", response_model=Entity)
+    async def get_entity_details(entity_id: str, coordinator=Depends(get_coordinator)):
+        """Get details for a specific entity."""
+        try:
+            # For now, return mock entity data
+            # In a real implementation, this would query the knowledge graph database
+            return Entity(
+                id=entity_id,
+                name=f"Entity {entity_id}",
+                type="concept",
+                properties={
+                    "description": f"Details for entity {entity_id}",
+                    "created_at": datetime.now().isoformat(),
+                    "confidence": 0.95
+                }
+            )
+        except Exception as e:
+            logger.error(f"Error getting entity details: {e}")
+            raise HTTPException(status_code=404, detail=f"Entity {entity_id} not found")
     
     return app
 

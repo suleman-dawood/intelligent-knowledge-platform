@@ -31,7 +31,7 @@ def load_config(config_path: Optional[str] = None) -> Dict[str, Any]:
     config = {
         "api": {
             "host": os.getenv("API_HOST", "localhost"),
-            "port": int(os.getenv("API_PORT", "8000"))
+            "port": int(os.getenv("API_PORT", "3100"))
         },
         "rabbitmq": {
             "host": os.getenv("RABBITMQ_HOST", "localhost"),
