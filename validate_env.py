@@ -7,12 +7,17 @@ This script validates all environment variables and tests connections to externa
 import os
 import sys
 import asyncio
-import aiohttp
 import socket
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
-from coordinator.config import load_config
-from coordinator.llm_client import DeepSeekLLMClient
+
+try:
+    from coordinator.config import load_config
+    from coordinator.llm_client import DeepSeekClient
+    CONFIG_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: Could not import coordinator modules: {e}")
+    CONFIG_AVAILABLE = False
 
 
 @dataclass
@@ -87,6 +92,15 @@ class EnvironmentValidator:
     
     def validate_config_loading(self):
         """Validate configuration can be loaded."""
+        if not CONFIG_AVAILABLE:
+            self.add_result(
+                "Configuration", 
+                "fail", 
+                "Coordinator modules not available",
+                "Install dependencies: pip install -r requirements.txt"
+            )
+            return False
+            
         try:
             self.config = load_config()
             self.add_result("Configuration", "pass", "Configuration loaded successfully")
@@ -137,11 +151,17 @@ class EnvironmentValidator:
     
     async def test_deepseek_connection(self):
         """Test connection to DeepSeek API."""
-        if not self.config:
+        if not CONFIG_AVAILABLE or not self.config:
+            self.add_result(
+                "DeepSeek API", 
+                "warning", 
+                "Cannot test DeepSeek API - configuration not available",
+                "Install dependencies first"
+            )
             return False
             
         try:
-            llm_client = DeepSeekLLMClient(self.config)
+            llm_client = DeepSeekClient(self.config)
             response = await llm_client.chat_completion(
                 messages=[{"role": "user", "content": "Hello, this is a test."}],
                 max_tokens=10
@@ -244,7 +264,7 @@ class EnvironmentValidator:
         required_packages = [
             'fastapi', 'uvicorn', 'pika', 'neo4j', 'pymongo', 'redis', 
             'nltk', 'openai', 'httpx', 'PyPDF2', 'pdfplumber', 'arxiv', 
-            'scholarly', 'bibtexparser', 'beautifulsoup4', 'requests'
+            'scholarly', 'bibtexparser', 'bs4', 'requests'
         ]
         
         missing_packages = []

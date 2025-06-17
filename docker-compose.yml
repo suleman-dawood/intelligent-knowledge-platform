@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Coordinator - Central manager for the system
   coordinator:
@@ -101,19 +99,9 @@ services:
       - QUERY_DEFAULTS_LIMIT=20
       - AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED=true
       - PERSISTENCE_DATA_PATH=/var/lib/weaviate
-      - DEFAULT_VECTORIZER_MODULE=text2vec-transformers
-      - ENABLE_MODULES=text2vec-transformers
-      - TRANSFORMERS_INFERENCE_API=http://t2v-transformers:8080
+      - DEFAULT_VECTORIZER_MODULE=none
     volumes:
       - weaviate_data:/var/lib/weaviate
-    depends_on:
-      - t2v-transformers
-    networks:
-      - knowledge_network
-
-  # Text to vector transformer service
-  t2v-transformers:
-    image: semitechnologies/transformers-inference:sentence-transformers-multi-qa-mpnet-base-dot-v1
     networks:
       - knowledge_network
 
