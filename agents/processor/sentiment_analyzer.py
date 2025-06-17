@@ -14,6 +14,12 @@ import nltk
 from nltk.tokenize import sent_tokenize
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
+# Import DeepSeek LLM client
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from coordinator.llm_client import get_llm_client
+
 # Configure logging
 logger = logging.getLogger(__name__)
 
@@ -39,6 +45,15 @@ class SentimentAnalyzer:
         
         # Initialize the VADER sentiment analyzer
         self.vader = SentimentIntensityAnalyzer()
+        
+        # Initialize LLM client if available
+        self.llm_client = None
+        try:
+            if config.get('llm', {}).get('deepseek_api_key'):
+                self.llm_client = get_llm_client(config)
+                logger.info("DeepSeek LLM client initialized for sentiment analysis")
+        except Exception as e:
+            logger.warning(f"Could not initialize LLM client: {e}")
         
         # Emotion lexicon (simplified version)
         # In a real implementation, this would be loaded from a comprehensive emotion lexicon
@@ -71,6 +86,7 @@ class SentimentAnalyzer:
         text = task_data.get('text')
         analyze_by_sentence = task_data.get('analyze_by_sentence', True)
         detect_emotions = task_data.get('detect_emotions', True)
+        use_llm = task_data.get('use_llm', True)
         
         if not text:
             raise ValueError("Text content is required")
@@ -83,18 +99,24 @@ class SentimentAnalyzer:
             "text_length": len(text)
         }
         
-        # Analyze overall document sentiment
+        # Analyze overall document sentiment using VADER
         doc_sentiment = self._analyze_sentiment(text)
         result["document_sentiment"] = doc_sentiment
         
-        # Determine the overall sentiment label
-        if doc_sentiment["compound"] >= 0.05:
-            result["sentiment"] = "positive"
-        elif doc_sentiment["compound"] <= -0.05:
-            result["sentiment"] = "negative"
-        else:
-            result["sentiment"] = "neutral"
-            
+        # Get LLM sentiment analysis if available
+        llm_sentiment = None
+        if use_llm and self.llm_client:
+            try:
+                llm_sentiment = await self._analyze_sentiment_llm(text)
+                result["llm_sentiment"] = llm_sentiment
+            except Exception as e:
+                logger.warning(f"LLM sentiment analysis failed: {e}")
+        
+        # Combine VADER and LLM results for final sentiment
+        final_sentiment = self._combine_sentiment_results(doc_sentiment, llm_sentiment)
+        result["sentiment"] = final_sentiment["label"]
+        result["confidence"] = final_sentiment["confidence"]
+        
         # Analyze by sentence if requested
         if analyze_by_sentence:
             sentences = sent_tokenize(text)
@@ -103,18 +125,23 @@ class SentimentAnalyzer:
             for sentence in sentences:
                 sentiment = self._analyze_sentiment(sentence)
                 
-                # Determine sentiment label
-                if sentiment["compound"] >= 0.05:
-                    sentiment_label = "positive"
-                elif sentiment["compound"] <= -0.05:
-                    sentiment_label = "negative"
-                else:
-                    sentiment_label = "neutral"
-                    
+                # Get LLM sentiment for sentence if available
+                llm_sent = None
+                if use_llm and self.llm_client and len(sentence) > 10:  # Only for substantial sentences
+                    try:
+                        llm_sent = await self._analyze_sentiment_llm(sentence)
+                    except Exception:
+                        pass
+                
+                # Combine results
+                combined = self._combine_sentiment_results(sentiment, llm_sent)
+                
                 sentence_sentiments.append({
                     "text": sentence,
-                    "sentiment": sentiment_label,
-                    "scores": sentiment
+                    "sentiment": combined["label"],
+                    "confidence": combined["confidence"],
+                    "scores": sentiment,
+                    "llm_scores": llm_sent
                 })
                 
             result["sentence_sentiments"] = sentence_sentiments
@@ -148,6 +175,79 @@ class SentimentAnalyzer:
                 }
             
         return result
+    
+    async def _analyze_sentiment_llm(self, text: str) -> Dict[str, Any]:
+        """Analyze sentiment using DeepSeek LLM.
+        
+        Args:
+            text: Text to analyze
+            
+        Returns:
+            LLM sentiment analysis result
+        """
+        if not self.llm_client:
+            return None
+        
+        try:
+            # Limit text length for LLM processing
+            if len(text) > 2000:
+                text = text[:2000] + "..."
+            
+            sentiment_result = await self.llm_client.classify_sentiment(text)
+            return sentiment_result
+            
+        except Exception as e:
+            logger.error(f"Error analyzing sentiment with LLM: {e}")
+            return None
+    
+    def _combine_sentiment_results(self, vader_result: Dict[str, float], llm_result: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        """Combine VADER and LLM sentiment results.
+        
+        Args:
+            vader_result: VADER sentiment scores
+            llm_result: LLM sentiment result
+            
+        Returns:
+            Combined sentiment result
+        """
+        # Determine VADER sentiment
+        if vader_result["compound"] >= 0.05:
+            vader_sentiment = "positive"
+        elif vader_result["compound"] <= -0.05:
+            vader_sentiment = "negative"
+        else:
+            vader_sentiment = "neutral"
+        
+        # If no LLM result, use VADER only
+        if not llm_result:
+            return {
+                "label": vader_sentiment,
+                "confidence": abs(vader_result["compound"])
+            }
+        
+        # Get LLM sentiment
+        llm_sentiment = llm_result.get("sentiment", "neutral")
+        llm_confidence = llm_result.get("confidence", 0.5)
+        
+        # Combine results - if both agree, higher confidence; if they disagree, lower confidence
+        if vader_sentiment == llm_sentiment:
+            # Both agree - high confidence
+            final_sentiment = vader_sentiment
+            final_confidence = min(0.95, (abs(vader_result["compound"]) + llm_confidence) / 2 + 0.2)
+        else:
+            # Disagree - use the one with higher confidence but lower overall confidence
+            vader_conf = abs(vader_result["compound"])
+            if llm_confidence > vader_conf:
+                final_sentiment = llm_sentiment
+                final_confidence = llm_confidence * 0.7  # Reduce confidence due to disagreement
+            else:
+                final_sentiment = vader_sentiment
+                final_confidence = vader_conf * 0.7
+        
+        return {
+            "label": final_sentiment,
+            "confidence": final_confidence
+        }
     
     def _analyze_sentiment(self, text: str) -> Dict[str, float]:
         """Analyze sentiment using VADER.

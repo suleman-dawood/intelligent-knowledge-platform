@@ -181,21 +181,44 @@ def create_api(coordinator):
     ):
         """Search the knowledge base."""
         try:
-            # Submit a search task and wait for results
-            task_id = await coordinator.submit_task("search", {"query": q})
+            # Submit a search task to the UI agent
+            task_id = await coordinator.submit_task("search", {"query": q, "max_results": 10})
             
-            # For now, return mock results since the search implementation would be complex
-            # In a real implementation, this would query the knowledge graph and vector database
-            return [
-                SearchResult(
-                    id="1",
-                    title=f"Search result for: {q}",
-                    content=f"This is a mock search result for the query '{q}'. In a real implementation, this would contain actual search results from the knowledge graph.",
-                    source="knowledge_graph",
-                    score=0.95,
-                    entities=[]
-                )
-            ]
+            # Wait for the search task to complete (with timeout)
+            max_wait_time = 30  # 30 seconds timeout
+            wait_time = 0
+            
+            while wait_time < max_wait_time:
+                task_status = await coordinator.get_task_status(task_id)
+                
+                if task_status.get("status") == "completed":
+                    results = task_status.get("result", {}).get("results", [])
+                    
+                    # Convert results to SearchResult format
+                    search_results = []
+                    for i, result in enumerate(results):
+                        search_results.append(SearchResult(
+                            id=result.get("id", str(i)),
+                            title=result.get("title", f"Result {i+1}"),
+                            content=result.get("content", result.get("text", "")),
+                            source=result.get("source", "knowledge_graph"),
+                            score=result.get("score", 0.8),
+                            entities=result.get("entities", [])
+                        ))
+                    
+                    return search_results
+                
+                elif task_status.get("status") == "failed":
+                    raise HTTPException(status_code=500, detail=f"Search failed: {task_status.get('error', 'Unknown error')}")
+                
+                # Wait before checking again
+                await asyncio.sleep(1)
+                wait_time += 1
+            
+            # Timeout - return empty results
+            logger.warning(f"Search task {task_id} timed out")
+            return []
+            
         except Exception as e:
             logger.error(f"Error searching knowledge: {e}")
             raise HTTPException(status_code=500, detail=str(e))
@@ -204,17 +227,50 @@ def create_api(coordinator):
     async def get_graph_overview(coordinator=Depends(get_coordinator)):
         """Get overview of the knowledge graph."""
         try:
-            # For now, return mock graph data
-            # In a real implementation, this would query the Neo4j database
-            return GraphData(
-                nodes=[
-                    GraphNode(id="1", label="Sample Entity", type="concept", properties={"description": "A sample entity"}),
-                    GraphNode(id="2", label="Related Entity", type="person", properties={"description": "A related entity"})
-                ],
-                edges=[
-                    GraphEdge(source="1", target="2", label="related_to", properties={"strength": 0.8})
-                ]
-            )
+            # Submit a graph overview task
+            task_id = await coordinator.submit_task("graph_overview", {"max_nodes": 50, "max_edges": 100})
+            
+            # Wait for the task to complete
+            max_wait_time = 30
+            wait_time = 0
+            
+            while wait_time < max_wait_time:
+                task_status = await coordinator.get_task_status(task_id)
+                
+                if task_status.get("status") == "completed":
+                    result = task_status.get("result", {})
+                    
+                    # Convert to GraphData format
+                    nodes = []
+                    for node in result.get("nodes", []):
+                        nodes.append(GraphNode(
+                            id=node.get("id", ""),
+                            label=node.get("label", node.get("name", "")),
+                            type=node.get("type", "entity"),
+                            properties=node.get("properties", {})
+                        ))
+                    
+                    edges = []
+                    for edge in result.get("edges", []):
+                        edges.append(GraphEdge(
+                            source=edge.get("source", ""),
+                            target=edge.get("target", ""),
+                            label=edge.get("label", edge.get("relationship", "")),
+                            properties=edge.get("properties", {})
+                        ))
+                    
+                    return GraphData(nodes=nodes, edges=edges)
+                
+                elif task_status.get("status") == "failed":
+                    raise HTTPException(status_code=500, detail=f"Graph overview failed: {task_status.get('error', 'Unknown error')}")
+                
+                await asyncio.sleep(1)
+                wait_time += 1
+            
+            # Timeout - return empty graph
+            logger.warning(f"Graph overview task {task_id} timed out")
+            return GraphData(nodes=[], edges=[])
+            
         except Exception as e:
             logger.error(f"Error getting graph overview: {e}")
             raise HTTPException(status_code=500, detail=str(e))
@@ -227,17 +283,55 @@ def create_api(coordinator):
     ):
         """Get graph data for a specific node."""
         try:
-            # For now, return mock graph data
-            # In a real implementation, this would query the Neo4j database for the specific node and its neighbors
-            return GraphData(
-                nodes=[
-                    GraphNode(id=node_id, label=f"Node {node_id}", type="concept", properties={"description": f"Node {node_id} details"}),
-                    GraphNode(id=f"{node_id}_neighbor", label=f"Neighbor of {node_id}", type="related", properties={"description": "A neighboring node"})
-                ],
-                edges=[
-                    GraphEdge(source=node_id, target=f"{node_id}_neighbor", label="connected_to", properties={"strength": 0.9})
-                ]
-            )
+            # Submit a node graph task
+            task_id = await coordinator.submit_task("node_graph", {
+                "node_id": node_id,
+                "depth": depth,
+                "max_nodes": 30,
+                "max_edges": 50
+            })
+            
+            # Wait for the task to complete
+            max_wait_time = 30
+            wait_time = 0
+            
+            while wait_time < max_wait_time:
+                task_status = await coordinator.get_task_status(task_id)
+                
+                if task_status.get("status") == "completed":
+                    result = task_status.get("result", {})
+                    
+                    # Convert to GraphData format
+                    nodes = []
+                    for node in result.get("nodes", []):
+                        nodes.append(GraphNode(
+                            id=node.get("id", ""),
+                            label=node.get("label", node.get("name", "")),
+                            type=node.get("type", "entity"),
+                            properties=node.get("properties", {})
+                        ))
+                    
+                    edges = []
+                    for edge in result.get("edges", []):
+                        edges.append(GraphEdge(
+                            source=edge.get("source", ""),
+                            target=edge.get("target", ""),
+                            label=edge.get("label", edge.get("relationship", "")),
+                            properties=edge.get("properties", {})
+                        ))
+                    
+                    return GraphData(nodes=nodes, edges=edges)
+                
+                elif task_status.get("status") == "failed":
+                    raise HTTPException(status_code=500, detail=f"Node graph failed: {task_status.get('error', 'Unknown error')}")
+                
+                await asyncio.sleep(1)
+                wait_time += 1
+            
+            # Timeout - return empty graph
+            logger.warning(f"Node graph task {task_id} timed out")
+            return GraphData(nodes=[], edges=[])
+            
         except Exception as e:
             logger.error(f"Error getting node graph: {e}")
             raise HTTPException(status_code=500, detail=str(e))
@@ -246,21 +340,44 @@ def create_api(coordinator):
     async def get_entity_details(entity_id: str, coordinator=Depends(get_coordinator)):
         """Get details for a specific entity."""
         try:
-            # For now, return mock entity data
-            # In a real implementation, this would query the knowledge graph database
-            return Entity(
-                id=entity_id,
-                name=f"Entity {entity_id}",
-                type="concept",
-                properties={
-                    "description": f"Details for entity {entity_id}",
-                    "created_at": datetime.now().isoformat(),
-                    "confidence": 0.95
-                }
-            )
+            # Submit an entity details task
+            task_id = await coordinator.submit_task("entity_details", {"entity_id": entity_id})
+            
+            # Wait for the task to complete
+            max_wait_time = 15
+            wait_time = 0
+            
+            while wait_time < max_wait_time:
+                task_status = await coordinator.get_task_status(task_id)
+                
+                if task_status.get("status") == "completed":
+                    result = task_status.get("result", {})
+                    
+                    return Entity(
+                        id=entity_id,
+                        name=result.get("name", f"Entity {entity_id}"),
+                        type=result.get("type", "entity"),
+                        properties=result.get("properties", {
+                            "description": result.get("description", f"Details for entity {entity_id}"),
+                            "created_at": datetime.now().isoformat(),
+                            "confidence": result.get("confidence", 0.95)
+                        })
+                    )
+                
+                elif task_status.get("status") == "failed":
+                    raise HTTPException(status_code=404, detail=f"Entity {entity_id} not found")
+                
+                await asyncio.sleep(1)
+                wait_time += 1
+            
+            # Timeout - entity not found
+            raise HTTPException(status_code=404, detail=f"Entity {entity_id} not found")
+            
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error(f"Error getting entity details: {e}")
-            raise HTTPException(status_code=404, detail=f"Entity {entity_id} not found")
+            raise HTTPException(status_code=500, detail=str(e))
     
     return app
 

@@ -434,48 +434,73 @@ class FeedbackAnalyzer:
             
         return insights
     
-    def _recommend_actions(self, insights: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Recommend actions based on insights.
-        
-        Args:
-            insights: List of insights
-            
-        Returns:
-            List of recommended actions
-        """
+    def recommend_actions(self, insights: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Recommend actions based on insights."""
         actions = []
         
         for insight in insights:
-            insight_type = insight["type"]
-            insight_text = insight["insight"]
-            importance = insight["importance"]
-            
-            if insight_type == "sentiment" and "negative" in insight_text and importance == "high":
-                actions.append({
-                    "action": "investigate_negative_feedback",
-                    "description": "Investigate causes of negative feedback",
-                    "priority": "high"
-                })
+            try:
+                # Validate required fields
+                insight_type = insight.get("type")
+                insight_text = insight.get("insight", "")
+                importance = insight.get("importance", "low")
                 
-            elif insight_type == "rating" and insight["value"] < 3.0:
-                actions.append({
-                    "action": "improve_content_quality",
-                    "description": "Review and improve content quality",
-                    "priority": "high"
-                })
+                if not insight_type:
+                    continue
+                    
+                # Sentiment analysis
+                if (insight_type == "sentiment" and 
+                    importance == "high" and 
+                    any(neg_word in insight_text.lower() for neg_word in ["negative", "poor", "bad"])):
+                    actions.append({
+                        "action": "investigate_negative_feedback",
+                        "description": "Investigate causes of negative feedback",
+                        "priority": "high"
+                    })
+                    
+                # Rating analysis
+                elif insight_type == "rating":
+                    rating_value = insight.get("value")
+                    if rating_value is not None and rating_value < 3.0:
+                        actions.append({
+                            "action": "improve_content_quality", 
+                            "description": "Review and improve content quality",
+                            "priority": "high"
+                        })
+                        
+                # Topic analysis - safer extraction
+                elif insight_type == "topic":
+                    # Extract topic name more safely
+                    topic_name = self._extract_topic_name(insight_text)
+                    actions.append({
+                        "action": "enhance_topic_coverage",
+                        "description": f"Enhance coverage of topic: {topic_name}",
+                        "priority": "medium"
+                    })
+                    
+                # Time-based analysis
+                elif insight_type == "time":
+                    actions.append({
+                        "action": "optimize_availability",
+                        "description": "Optimize system availability during peak hours", 
+                        "priority": "low"
+                    })
+                    
+            except Exception as e:
+                # Log error but continue processing other insights
+                print(f"Error processing insight: {e}")
+                continue
                 
-            elif insight_type == "topic":
-                actions.append({
-                    "action": "enhance_topic_coverage",
-                    "description": f"Enhance coverage of topic '{insight['insight'].split(\"'\")[1]}'",
-                    "priority": "medium"
-                })
-                
-            elif insight_type == "time":
-                actions.append({
-                    "action": "optimize_availability",
-                    "description": "Optimize system availability during peak hours",
-                    "priority": "low"
-                })
-                
-        return actions 
+        return actions
+
+    def _extract_topic_name(self, insight_text: str) -> str:
+        """Safely extract topic name from insight text."""
+        # Try multiple extraction methods
+        if "'" in insight_text:
+            parts = insight_text.split("'")
+            if len(parts) >= 2:
+                return parts[1]
+        
+        # Fallback to taking last word or returning generic
+        words = insight_text.split()
+        return words[-1] if words else "unknown topic"

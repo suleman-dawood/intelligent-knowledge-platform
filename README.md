@@ -60,9 +60,9 @@ The platform consists of multiple specialized agents, each responsible for a spe
 
 4. Copy the example environment file and configure it:
    ```
-   cp env.example .env
+   cp config.env.example .env
    ```
-   Edit the `.env` file to set your configuration.
+   Edit the `.env` file to set your DeepSeek API key and other configuration.
 
 5. Install frontend dependencies:
    ```
@@ -194,5 +194,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Acknowledgments
 
 - Neo4j for graph database
-- Hugging Face for NLP models
+- DeepSeek for LLM capabilities
 - React and Next.js for the frontend framework 
