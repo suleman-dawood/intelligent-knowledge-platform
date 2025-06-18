@@ -69,6 +69,12 @@ class Coordinator:
         # Start message broker
         await self.message_broker.connect()
         
+        # Subscribe to task events to keep task queue in sync
+        await self.message_broker.subscribe_to_events(
+            ["task.completed", "task.failed"],
+            self._handle_task_event
+        )
+        
         # Initialize and start agents
         await self.agent_manager.start_agents()
         
@@ -166,6 +172,29 @@ class Coordinator:
                 "failed": self.task_queue.failed_count()
             }
         }
+    
+    async def _handle_task_event(self, event_type: str, event_data: Dict[str, Any]) -> None:
+        """Handle task completion and failure events.
+        
+        Args:
+            event_type: Type of event
+            event_data: Event data
+        """
+        task_id = event_data.get("task_id")
+        
+        if not task_id:
+            logger.warning(f"Received {event_type} event without task_id")
+            return
+            
+        if event_type == "task.completed":
+            result = event_data.get("result")
+            await self.task_queue.complete_task(task_id, result)
+            logger.info(f"Task {task_id} marked as completed in task queue")
+            
+        elif event_type == "task.failed":
+            error = event_data.get("error", "Unknown error")
+            await self.task_queue.fail_task(task_id, error)
+            logger.info(f"Task {task_id} marked as failed in task queue: {error}")
 
 
 async def main():

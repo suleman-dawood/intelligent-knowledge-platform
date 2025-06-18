@@ -3,7 +3,7 @@ const nextConfig = {
   reactStrictMode: true,
   env: {
     API_URL: process.env.API_URL || 'http://localhost:3100',
-    WEBSOCKET_URL: process.env.WEBSOCKET_URL || 'http://localhost:3100',
+    WEBSOCKET_URL: process.env.WEBSOCKET_URL || 'ws://localhost:3100/ws',
   },
   // Configure server-to-client API calls
   async rewrites() {

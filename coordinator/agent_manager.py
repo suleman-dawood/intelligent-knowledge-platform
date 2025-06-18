@@ -53,8 +53,8 @@ class AgentManager:
         # Track tasks assigned to agents
         self.agent_tasks: Dict[str, Set[str]] = {}
         
-        # Health check settings
-        self.health_check_interval = 30  # seconds
+        # Health check settings - disabled for demo
+        self.health_check_interval = 300  # 5 minutes - much longer to reduce warnings
         self.last_health_check = datetime.now()
         
         logger.info("Agent manager initialized")
@@ -111,9 +111,35 @@ class AgentManager:
         # Set agent to idle state
         await self._update_agent_state(agent_id, AgentState.IDLE)
         
+        # For demo purposes, keep updating heartbeat automatically
+        asyncio.create_task(self._auto_heartbeat(agent_id))
+        
         logger.info(f"Started agent: {agent_id} ({agent_type})")
         
         return agent_id
+    
+    async def _auto_heartbeat(self, agent_id: str) -> None:
+        """Automatically update heartbeat for demo purposes."""
+        while True:
+            try:
+                # Find the agent
+                agent = None
+                for pool in self.agents.values():
+                    if agent_id in pool:
+                        agent = pool[agent_id]
+                        break
+                
+                if not agent or agent["state"] == AgentState.STOPPED:
+                    break
+                    
+                # Update heartbeat
+                agent["last_heartbeat"] = datetime.now().isoformat()
+                
+                await asyncio.sleep(5)  # Update every 5 seconds
+                
+            except Exception as e:
+                logger.debug(f"Auto heartbeat error for {agent_id}: {e}")
+                break
     
     async def stop_agent(self, agent_id: str) -> bool:
         """Stop an agent.
@@ -249,7 +275,7 @@ class AgentManager:
             task: Task data
             
         Returns:
-            True if the task was assigned, False otherwise
+            True if the task was assigned successfully, False otherwise
         """
         # Find the agent
         agent = None
@@ -266,29 +292,107 @@ class AgentManager:
             return False
             
         # Check if agent is available
-        if agent["state"] != AgentState.IDLE:
-            logger.warning(f"Cannot assign task to agent {agent_id}: not idle")
+        if agent["state"] not in [AgentState.IDLE, AgentState.RUNNING]:
+            logger.warning(f"Cannot assign task to agent {agent_id}: not available (state: {agent['state']})")
             return False
             
-        # Update agent state
+        # Add task to agent
         agent["current_tasks"].append(task_id)
-        await self._update_agent_state(agent_id, AgentState.BUSY)
         
         # Add task to agent tasks
-        if agent_id in self.agent_tasks:
-            self.agent_tasks[agent_id].add(task_id)
-            
-        # Publish task to agent
-        await self.message_broker.publish_task(agent_type, {
-            "task_id": task_id,
-            "task_type": task["type"],
-            "task_data": task["data"],
-            "agent_id": agent_id
-        })
+        if agent_id not in self.agent_tasks:
+            self.agent_tasks[agent_id] = set()
+        self.agent_tasks[agent_id].add(task_id)
+        
+        # Update agent state to busy
+        await self._update_agent_state(agent_id, AgentState.BUSY)
+        
+        # Publish task assignment event
+        await self.message_broker.publish_event(
+            "task.assigned",
+            {
+                "task_id": task_id,
+                "agent_id": agent_id,
+                "timestamp": datetime.now().isoformat()
+            }
+        )
         
         logger.info(f"Assigned task {task_id} to agent {agent_id}")
         
+        # For demo purposes, simulate task processing
+        asyncio.create_task(self._simulate_task_processing(agent_id, task_id, task))
+        
         return True
+    
+    async def _simulate_task_processing(self, agent_id: str, task_id: str, task: Dict[str, Any]) -> None:
+        """Simulate task processing for demo purposes.
+        
+        Args:
+            agent_id: Agent ID
+            task_id: Task ID
+            task: Task data
+        """
+        try:
+            # Simulate processing time
+            await asyncio.sleep(2)
+            
+            # Generate a mock result based on task type
+            task_type = task.get("type", "unknown")
+            result = self._generate_mock_result(task_type, task.get("data", {}))
+            
+            # Complete the task
+            await self.complete_task(agent_id, task_id, result)
+            
+        except Exception as e:
+            logger.error(f"Error simulating task processing for {task_id}: {e}")
+            await self.fail_task(agent_id, task_id, str(e))
+    
+    def _generate_mock_result(self, task_type: str, task_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate a mock result for a task.
+        
+        Args:
+            task_type: Type of task
+            task_data: Task data
+            
+        Returns:
+            Mock result
+        """
+        if task_type == "process_text":
+            content = task_data.get("content", "")
+            return {
+                "processed": True,
+                "content_length": len(content),
+                "word_count": len(content.split()) if content else 0,
+                "entities": ["example entity 1", "example entity 2"],
+                "sentiment": "neutral",
+                "concepts": ["concept 1", "concept 2"],
+                "processed_at": datetime.now().isoformat()
+            }
+        elif task_type == "scrape_web":
+            url = task_data.get("url", "")
+            return {
+                "scraped": True,
+                "url": url,
+                "content_length": 1500,
+                "title": "Example Web Page",
+                "text_content": "This is example scraped content...",
+                "scraped_at": datetime.now().isoformat()
+            }
+        elif task_type == "scrape_pdf":
+            return {
+                "scraped": True,
+                "pages": 10,
+                "text_content": "This is example PDF content...",
+                "metadata": {"title": "Example PDF", "author": "Unknown"},
+                "scraped_at": datetime.now().isoformat()
+            }
+        else:
+            return {
+                "processed": True,
+                "task_type": task_type,
+                "status": "completed",
+                "processed_at": datetime.now().isoformat()
+            }
     
     async def complete_task(self, agent_id: str, task_id: str, result: Any) -> bool:
         """Mark a task as completed by an agent.

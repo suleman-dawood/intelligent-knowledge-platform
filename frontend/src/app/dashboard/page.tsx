@@ -1,32 +1,97 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Header from '@/components/Header'
-import Footer from '@/components/Footer'
+import { motion } from 'framer-motion'
+import { 
+  ArrowTrendingUpIcon, 
+  UsersIcon, 
+  DocumentTextIcon, 
+  LinkIcon,
+  ChartBarIcon,
+  ClockIcon,
+  ArrowUpIcon,
+  ArrowDownIcon,
+  EyeIcon,
+  MagnifyingGlassIcon as SearchIcon
+} from '@heroicons/react/24/outline'
 
 // Sample dashboard data
 const SAMPLE_DATA = {
   recentQueries: [
-    { id: 'q1', text: 'What is knowledge integration?', timestamp: '2023-05-08T14:32:15Z' },
-    { id: 'q2', text: 'Show me quantum physics concepts', timestamp: '2023-05-08T10:15:42Z' },
-    { id: 'q3', text: 'Explain artificial intelligence', timestamp: '2023-05-07T16:45:12Z' },
-    { id: 'q4', text: 'Knowledge graph vs database', timestamp: '2023-05-07T09:22:18Z' },
-    { id: 'q5', text: 'Machine learning algorithms', timestamp: '2023-05-06T14:12:39Z' },
+    { id: 'q1', text: 'What is knowledge integration?', timestamp: '2023-05-08T14:32:15Z', results: 42 },
+    { id: 'q2', text: 'Show me quantum physics concepts', timestamp: '2023-05-08T10:15:42Z', results: 156 },
+    { id: 'q3', text: 'Explain artificial intelligence', timestamp: '2023-05-07T16:45:12Z', results: 89 },
+    { id: 'q4', text: 'Knowledge graph vs database', timestamp: '2023-05-07T09:22:18Z', results: 34 },
+    { id: 'q5', text: 'Machine learning algorithms', timestamp: '2023-05-06T14:12:39Z', results: 67 },
   ],
   knowledgeStats: {
     totalEntities: 12580,
     totalRelations: 35624,
     recentEntities: 156,
     recentSources: 42,
+    weeklyGrowth: {
+      entities: 12.5,
+      relations: 8.3,
+      sources: 15.2,
+      queries: 23.1
+    }
   },
   trendingTopics: [
-    { name: 'Quantum Computing', score: 0.95 },
-    { name: 'Neural Networks', score: 0.87 },
-    { name: 'Climate Science', score: 0.82 },
-    { name: 'Vaccine Research', score: 0.78 },
-    { name: 'Space Exploration', score: 0.76 },
+    { name: 'Quantum Computing', score: 0.95, change: 5.2 },
+    { name: 'Neural Networks', score: 0.87, change: -2.1 },
+    { name: 'Climate Science', score: 0.82, change: 8.7 },
+    { name: 'Vaccine Research', score: 0.78, change: 3.4 },
+    { name: 'Space Exploration', score: 0.76, change: -1.8 },
   ],
+  activityFeed: [
+    { type: 'content_added', title: 'New research paper on AI ethics', time: '2 hours ago' },
+    { type: 'query_processed', title: 'Complex query about quantum mechanics', time: '4 hours ago' },
+    { type: 'knowledge_extracted', title: '45 new entities from climate data', time: '6 hours ago' },
+    { type: 'source_connected', title: 'Connected to Nature journal API', time: '1 day ago' },
+  ]
 }
+
+const StatCard = ({ title, value, icon: Icon, change, changeType = 'positive' }: {
+  title: string
+  value: string | number
+  icon: any
+  change?: number
+  changeType?: 'positive' | 'negative' | 'neutral'
+}) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+  >
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="text-sm font-medium text-gray-600">{title}</p>
+        <p className="text-3xl font-bold text-gray-900 mt-2">
+          {typeof value === 'number' ? value.toLocaleString() : value}
+        </p>
+        {change !== undefined && (
+          <div className="flex items-center mt-2">
+            {changeType === 'positive' ? (
+              <ArrowUpIcon className="h-4 w-4 text-green-500 mr-1" />
+            ) : changeType === 'negative' ? (
+              <ArrowDownIcon className="h-4 w-4 text-red-500 mr-1" />
+            ) : null}
+            <span className={`text-sm font-medium ${
+              changeType === 'positive' ? 'text-green-600' : 
+              changeType === 'negative' ? 'text-red-600' : 'text-gray-600'
+            }`}>
+              {change > 0 ? '+' : ''}{change}%
+            </span>
+            <span className="text-sm text-gray-500 ml-1">vs last week</span>
+          </div>
+        )}
+      </div>
+      <div className="bg-primary-50 p-3 rounded-lg">
+        <Icon className="h-6 w-6 text-primary-600" />
+      </div>
+    </div>
+  </motion.div>
+)
 
 export default function Dashboard() {
   const [dashboardData, setDashboardData] = useState(SAMPLE_DATA)
@@ -39,12 +104,6 @@ export default function Dashboard() {
         setIsLoading(true)
         // Mock API call delay
         await new Promise(resolve => setTimeout(resolve, 500))
-        
-        // In a real app, this would be:
-        // const response = await fetch('/api/dashboard')
-        // const data = await response.json()
-        // setDashboardData(data)
-        
         setIsLoading(false)
       } catch (error) {
         console.error('Error fetching dashboard data:', error)
@@ -68,185 +127,198 @@ export default function Dashboard() {
   }
   
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-      
-      <main className="flex-grow bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="md:flex md:items-center md:justify-between">
-            <div className="min-w-0 flex-1">
-              <h1 className="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:leading-9">
-                Dashboard
-              </h1>
-              <p className="mt-1 text-sm text-gray-500">
-                Overview of your knowledge platform usage and statistics
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+              <p className="mt-2 text-gray-600">
+                Welcome back! Here's what's happening with your knowledge platform.
               </p>
             </div>
-            <div className="mt-4 flex md:ml-4 md:mt-0">
-              <button
-                type="button"
-                className="btn btn-outline ml-3"
-              >
-                Export Data
+            <div className="flex gap-3">
+              <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                <DocumentTextIcon className="h-4 w-4 mr-2" />
+                Export Report
               </button>
-              <button
-                type="button"
-                className="btn btn-primary ml-3"
-              >
-                Generate Report
+              <button className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors">
+                <ChartBarIcon className="h-4 w-4 mr-2" />
+                Analytics
               </button>
             </div>
           </div>
-          
-          {isLoading ? (
-            <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="bg-white shadow rounded-lg p-6 animate-pulse">
-                  <div className="h-6 bg-gray-200 rounded mb-4 w-1/2"></div>
-                  <div className="h-10 bg-gray-200 rounded mb-4"></div>
-                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                </div>
-              ))}
+        </motion.div>
+
+        {isLoading ? (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-white rounded-xl p-6 animate-pulse">
+                <div className="h-4 bg-gray-200 rounded mb-4 w-2/3"></div>
+                <div className="h-8 bg-gray-200 rounded mb-4"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <>
+            {/* Stats Grid */}
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+              <StatCard
+                title="Total Entities"
+                value={dashboardData.knowledgeStats.totalEntities}
+                icon={UsersIcon}
+                change={dashboardData.knowledgeStats.weeklyGrowth.entities}
+                changeType="positive"
+              />
+              <StatCard
+                title="Relationships"
+                value={dashboardData.knowledgeStats.totalRelations}
+                icon={LinkIcon}
+                change={dashboardData.knowledgeStats.weeklyGrowth.relations}
+                changeType="positive"
+              />
+              <StatCard
+                title="New Entities (30d)"
+                value={dashboardData.knowledgeStats.recentEntities}
+                icon={ArrowTrendingUpIcon}
+                change={dashboardData.knowledgeStats.weeklyGrowth.sources}
+                changeType="positive"
+              />
+              <StatCard
+                title="Active Sources"
+                value={dashboardData.knowledgeStats.recentSources}
+                icon={DocumentTextIcon}
+                change={dashboardData.knowledgeStats.weeklyGrowth.queries}
+                changeType="positive"
+              />
             </div>
-          ) : (
-            <>
-              {/* Stats Grid */}
-              <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                {/* Entities Stat */}
-                <div className="bg-white shadow rounded-lg p-6">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 bg-primary-100 rounded-md p-3">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-primary-600">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
-                      </svg>
-                    </div>
-                    <div className="ml-5">
-                      <p className="text-sm font-medium text-gray-500 truncate">Entities</p>
-                      <p className="text-3xl font-semibold text-gray-900">{dashboardData.knowledgeStats.totalEntities.toLocaleString()}</p>
-                    </div>
+            
+            {/* Content Grid */}
+            <div className="grid gap-8 lg:grid-cols-3">
+              {/* Trending Topics */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 }}
+                className="bg-white rounded-xl shadow-sm border border-gray-200"
+              >
+                <div className="p-6 border-b border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900">Trending Topics</h3>
+                  <p className="text-sm text-gray-600 mt-1">Most popular topics being explored</p>
+                </div>
+                <div className="p-6">
+                  <div className="space-y-4">
+                    {dashboardData.trendingTopics.map((topic, index) => (
+                      <div key={topic.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                        <div className="flex items-center">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-primary-600 text-sm font-medium mr-3">
+                            {index + 1}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{topic.name}</p>
+                            <p className="text-xs text-gray-500">Score: {topic.score.toFixed(2)}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center">
+                          {topic.change > 0 ? (
+                            <ArrowUpIcon className="h-4 w-4 text-green-500 mr-1" />
+                          ) : (
+                            <ArrowDownIcon className="h-4 w-4 text-red-500 mr-1" />
+                          )}
+                          <span className={`text-xs font-medium ${topic.change > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {topic.change > 0 ? '+' : ''}{topic.change}%
+                          </span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-                
-                {/* Relationships Stat */}
-                <div className="bg-white shadow rounded-lg p-6">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 bg-primary-100 rounded-md p-3">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-primary-600">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
-                      </svg>
-                    </div>
-                    <div className="ml-5">
-                      <p className="text-sm font-medium text-gray-500 truncate">Relationships</p>
-                      <p className="text-3xl font-semibold text-gray-900">{dashboardData.knowledgeStats.totalRelations.toLocaleString()}</p>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* New Entities Stat */}
-                <div className="bg-white shadow rounded-lg p-6">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 bg-primary-100 rounded-md p-3">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-primary-600">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <div className="ml-5">
-                      <p className="text-sm font-medium text-gray-500 truncate">New Entities (30d)</p>
-                      <p className="text-3xl font-semibold text-gray-900">{dashboardData.knowledgeStats.recentEntities.toLocaleString()}</p>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Sources Stat */}
-                <div className="bg-white shadow rounded-lg p-6">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 bg-primary-100 rounded-md p-3">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-primary-600">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                      </svg>
-                    </div>
-                    <div className="ml-5">
-                      <p className="text-sm font-medium text-gray-500 truncate">New Sources (30d)</p>
-                      <p className="text-3xl font-semibold text-gray-900">{dashboardData.knowledgeStats.recentSources.toLocaleString()}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              </motion.div>
               
-              {/* Content Grid */}
-              <div className="mt-8 grid gap-8 grid-cols-1 lg:grid-cols-3">
-                {/* Trending Topics */}
-                <div className="bg-white rounded-lg shadow">
-                  <div className="px-6 py-5 border-b border-gray-200">
-                    <h3 className="text-lg font-medium leading-6 text-gray-900">Trending Topics</h3>
-                    <p className="mt-1 text-sm text-gray-500">The most popular topics being explored.</p>
-                  </div>
-                  <div className="px-6 py-5">
-                    <ul className="divide-y divide-gray-200">
-                      {dashboardData.trendingTopics.map((topic, index) => (
-                        <li key={topic.name} className="py-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-primary-600 text-sm font-medium">
-                                {index + 1}
-                              </span>
-                              <p className="ml-4 text-sm font-medium text-gray-900">{topic.name}</p>
-                            </div>
-                            <div className="ml-2 flex-shrink-0 flex">
-                              <div className="text-sm text-gray-500 bg-gray-100 rounded-full px-3 py-1">
-                                Score: {topic.score.toFixed(2)}
-                              </div>
+              {/* Recent Queries */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="bg-white rounded-xl shadow-sm border border-gray-200 lg:col-span-2"
+              >
+                <div className="p-6 border-b border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900">Recent Queries</h3>
+                  <p className="text-sm text-gray-600 mt-1">Latest questions asked in the platform</p>
+                </div>
+                <div className="p-6">
+                  <div className="space-y-4">
+                    {dashboardData.recentQueries.map((query) => (
+                      <div key={query.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                        <div className="flex items-center flex-1">
+                          <div className="bg-primary-100 p-2 rounded-lg mr-3">
+                            <SearchIcon className="h-4 w-4 text-primary-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">{query.text}</p>
+                            <div className="flex items-center mt-1 text-xs text-gray-500">
+                              <ClockIcon className="h-3 w-3 mr-1" />
+                              <span>{formatDate(query.timestamp)}</span>
+                              <span className="mx-2">•</span>
+                              <EyeIcon className="h-3 w-3 mr-1" />
+                              <span>{query.results} results</span>
                             </div>
                           </div>
-                        </li>
-                      ))}
-                    </ul>
+                        </div>
+                        <div className="flex gap-2 ml-4">
+                          <button className="text-xs text-primary-600 hover:text-primary-700 font-medium px-2 py-1 rounded hover:bg-primary-50 transition-colors">
+                            View Results
+                          </button>
+                          <button className="text-xs text-gray-600 hover:text-gray-700 font-medium px-2 py-1 rounded hover:bg-gray-100 transition-colors">
+                            Similar
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-                
-                {/* Recent Queries */}
-                <div className="bg-white rounded-lg shadow lg:col-span-2">
-                  <div className="px-6 py-5 border-b border-gray-200">
-                    <h3 className="text-lg font-medium leading-6 text-gray-900">Recent Queries</h3>
-                    <p className="mt-1 text-sm text-gray-500">The most recent questions asked in the platform.</p>
-                  </div>
-                  <div className="px-6 py-5">
-                    <ul className="divide-y divide-gray-200">
-                      {dashboardData.recentQueries.map((query) => (
-                        <li key={query.id} className="py-4">
-                          <div className="flex flex-col space-y-2">
-                            <div className="flex items-center justify-between">
-                              <p className="text-sm font-medium text-primary-600">{query.text}</p>
-                              <p className="text-sm text-gray-500">{formatDate(query.timestamp)}</p>
-                            </div>
-                            <div className="flex">
-                              <button
-                                type="button"
-                                className="text-xs text-gray-600 hover:text-primary-600"
-                              >
-                                View Results
-                              </button>
-                              <span className="mx-1 text-gray-500">•</span>
-                              <button
-                                type="button"
-                                className="text-xs text-gray-600 hover:text-primary-600"
-                              >
-                                Similar Queries
-                              </button>
-                            </div>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+              </motion.div>
+            </div>
+
+            {/* Activity Feed */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200"
+            >
+              <div className="p-6 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
+                <p className="text-sm text-gray-600 mt-1">Latest system activities and updates</p>
+              </div>
+              <div className="p-6">
+                <div className="space-y-4">
+                  {dashboardData.activityFeed.map((activity, index) => (
+                    <div key={index} className="flex items-center p-3 bg-gray-50 rounded-lg">
+                      <div className={`w-2 h-2 rounded-full mr-3 ${
+                        activity.type === 'content_added' ? 'bg-green-500' :
+                        activity.type === 'query_processed' ? 'bg-blue-500' :
+                        activity.type === 'knowledge_extracted' ? 'bg-purple-500' :
+                        'bg-orange-500'
+                      }`} />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">{activity.title}</p>
+                        <p className="text-xs text-gray-500">{activity.time}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            </>
-          )}
-        </div>
-      </main>
-      
-      <Footer />
+            </motion.div>
+          </>
+        )}
+      </div>
     </div>
   )
 } 
