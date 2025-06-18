@@ -66,14 +66,16 @@ class Coordinator:
         self.is_running = True
         self.start_time = datetime.now()
         
-        # Start message broker
-        await self.message_broker.connect()
-        
-        # Subscribe to task events to keep task queue in sync
-        await self.message_broker.subscribe_to_events(
-            ["task.completed", "task.failed"],
-            self._handle_task_event
-        )
+        # Start message broker (skip if no RabbitMQ)
+        try:
+            await self.message_broker.connect()
+            # Subscribe to task events to keep task queue in sync
+            await self.message_broker.subscribe_to_events(
+                ["task.completed", "task.failed"],
+                self._handle_task_event
+            )
+        except Exception as e:
+            logger.warning(f"Message broker connection failed: {e}. Running in standalone mode.")
         
         # Initialize and start agents
         await self.agent_manager.start_agents()
@@ -121,7 +123,10 @@ class Coordinator:
         await self.agent_manager.stop_agents()
         
         # Close message broker connection
-        await self.message_broker.close()
+        try:
+            await self.message_broker.close()
+        except Exception as e:
+            logger.warning(f"Error closing message broker: {e}")
         
         self.is_running = False
         uptime = datetime.now() - self.start_time if self.start_time else None

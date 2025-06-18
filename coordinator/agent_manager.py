@@ -59,6 +59,13 @@ class AgentManager:
         
         logger.info("Agent manager initialized")
     
+    async def _safe_publish_event(self, event_type: str, event_data: Dict[str, Any]) -> None:
+        """Safely publish an event, handling connection errors."""
+        try:
+            await self.message_broker.publish_event(event_type, event_data)
+        except Exception as e:
+            logger.debug(f"Could not publish event {event_type}: {e}")
+    
     async def start_agents(self) -> None:
         """Start agents according to configuration."""
         logger.info("Starting agents...")
@@ -99,7 +106,7 @@ class AgentManager:
         self.agent_tasks[agent_id] = set()
         
         # Publish agent start event
-        await self.message_broker.publish_event(
+        await self._safe_publish_event(
             "agent.started",
             {
                 "agent_id": agent_id,
@@ -168,7 +175,7 @@ class AgentManager:
         await self._update_agent_state(agent_id, AgentState.STOPPING)
         
         # Publish agent stop event
-        await self.message_broker.publish_event(
+        await self._safe_publish_event(
             "agent.stopping",
             {
                 "agent_id": agent_id,
@@ -193,7 +200,7 @@ class AgentManager:
             del self.agent_tasks[agent_id]
             
         # Publish agent stopped event
-        await self.message_broker.publish_event(
+        await self._safe_publish_event(
             "agent.stopped",
             {
                 "agent_id": agent_id,
@@ -308,7 +315,7 @@ class AgentManager:
         await self._update_agent_state(agent_id, AgentState.BUSY)
         
         # Publish task assignment event
-        await self.message_broker.publish_event(
+        await self._safe_publish_event(
             "task.assigned",
             {
                 "task_id": task_id,
@@ -595,7 +602,7 @@ class AgentManager:
             await self._update_agent_state(agent_id, AgentState.IDLE)
             
         # Publish task completion event
-        await self.message_broker.publish_event(
+        await self._safe_publish_event(
             "task.completed",
             {
                 "task_id": task_id,
@@ -651,7 +658,7 @@ class AgentManager:
             await self._update_agent_state(agent_id, AgentState.IDLE)
             
         # Publish task failure event
-        await self.message_broker.publish_event(
+        await self._safe_publish_event(
             "task.failed",
             {
                 "task_id": task_id,
@@ -692,7 +699,7 @@ class AgentManager:
                     await self._update_agent_state(agent_id, AgentState.ERROR)
                     
                     # Publish agent error event
-                    await self.message_broker.publish_event(
+                    await self._safe_publish_event(
                         "agent.error",
                         {
                             "agent_id": agent_id,
@@ -734,7 +741,7 @@ class AgentManager:
         
         # Publish task failure events for all tasks
         for task_id in tasks:
-            await self.message_broker.publish_event(
+            await self._safe_publish_event(
                 "task.failed",
                 {
                     "task_id": task_id,
@@ -776,7 +783,7 @@ class AgentManager:
         agent["state"] = state
         
         # Publish state change event
-        await self.message_broker.publish_event(
+        await self._safe_publish_event(
             "agent.state_changed",
             {
                 "agent_id": agent_id,
