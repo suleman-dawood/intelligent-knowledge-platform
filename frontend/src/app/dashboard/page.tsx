@@ -15,41 +15,7 @@ import {
   MagnifyingGlassIcon as SearchIcon
 } from '@heroicons/react/24/outline'
 
-// Sample dashboard data
-const SAMPLE_DATA = {
-  recentQueries: [
-    { id: 'q1', text: 'What is knowledge integration?', timestamp: '2023-05-08T14:32:15Z', results: 42 },
-    { id: 'q2', text: 'Show me quantum physics concepts', timestamp: '2023-05-08T10:15:42Z', results: 156 },
-    { id: 'q3', text: 'Explain artificial intelligence', timestamp: '2023-05-07T16:45:12Z', results: 89 },
-    { id: 'q4', text: 'Knowledge graph vs database', timestamp: '2023-05-07T09:22:18Z', results: 34 },
-    { id: 'q5', text: 'Machine learning algorithms', timestamp: '2023-05-06T14:12:39Z', results: 67 },
-  ],
-  knowledgeStats: {
-    totalEntities: 12580,
-    totalRelations: 35624,
-    recentEntities: 156,
-    recentSources: 42,
-    weeklyGrowth: {
-      entities: 12.5,
-      relations: 8.3,
-      sources: 15.2,
-      queries: 23.1
-    }
-  },
-  trendingTopics: [
-    { name: 'Quantum Computing', score: 0.95, change: 5.2 },
-    { name: 'Neural Networks', score: 0.87, change: -2.1 },
-    { name: 'Climate Science', score: 0.82, change: 8.7 },
-    { name: 'Vaccine Research', score: 0.78, change: 3.4 },
-    { name: 'Space Exploration', score: 0.76, change: -1.8 },
-  ],
-  activityFeed: [
-    { type: 'content_added', title: 'New research paper on AI ethics', time: '2 hours ago' },
-    { type: 'query_processed', title: 'Complex query about quantum mechanics', time: '4 hours ago' },
-    { type: 'knowledge_extracted', title: '45 new entities from climate data', time: '6 hours ago' },
-    { type: 'source_connected', title: 'Connected to Nature journal API', time: '1 day ago' },
-  ]
-}
+import { databaseService, DashboardData } from '../../lib/database'
 
 const StatCard = ({ title, value, icon: Icon, change, changeType = 'positive' }: {
   title: string
@@ -94,19 +60,18 @@ const StatCard = ({ title, value, icon: Icon, change, changeType = 'positive' }:
 )
 
 export default function Dashboard() {
-  const [dashboardData, setDashboardData] = useState(SAMPLE_DATA)
-  const [isLoading, setIsLoading] = useState(false)
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
   
-  // In a real app, this would fetch actual data from the backend
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true)
-        // Mock API call delay
-        await new Promise(resolve => setTimeout(resolve, 500))
-        setIsLoading(false)
+        const data = await databaseService.getDashboardData()
+        setDashboardData(data)
       } catch (error) {
         console.error('Error fetching dashboard data:', error)
+      } finally {
         setIsLoading(false)
       }
     }
@@ -155,7 +120,7 @@ export default function Dashboard() {
           </div>
         </motion.div>
 
-        {isLoading ? (
+        {isLoading || !dashboardData ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="bg-white rounded-xl p-6 animate-pulse">
@@ -171,30 +136,30 @@ export default function Dashboard() {
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
               <StatCard
                 title="Total Entities"
-                value={dashboardData.knowledgeStats.totalEntities}
+                value={dashboardData.stats.totalEntities}
                 icon={UsersIcon}
-                change={dashboardData.knowledgeStats.weeklyGrowth.entities}
+                change={dashboardData.stats.weeklyGrowth.entities}
                 changeType="positive"
               />
               <StatCard
                 title="Relationships"
-                value={dashboardData.knowledgeStats.totalRelations}
+                value={dashboardData.stats.totalRelations}
                 icon={LinkIcon}
-                change={dashboardData.knowledgeStats.weeklyGrowth.relations}
+                change={dashboardData.stats.weeklyGrowth.relations}
                 changeType="positive"
               />
               <StatCard
                 title="New Entities (30d)"
-                value={dashboardData.knowledgeStats.recentEntities}
+                value={dashboardData.stats.recentEntities}
                 icon={ArrowTrendingUpIcon}
-                change={dashboardData.knowledgeStats.weeklyGrowth.sources}
+                change={dashboardData.stats.weeklyGrowth.sources}
                 changeType="positive"
               />
               <StatCard
                 title="Active Sources"
-                value={dashboardData.knowledgeStats.recentSources}
+                value={dashboardData.stats.recentSources}
                 icon={DocumentTextIcon}
-                change={dashboardData.knowledgeStats.weeklyGrowth.queries}
+                change={dashboardData.stats.weeklyGrowth.queries}
                 changeType="positive"
               />
             </div>

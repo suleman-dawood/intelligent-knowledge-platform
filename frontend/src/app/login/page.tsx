@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { authService } from '../../lib/auth';
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -10,6 +12,7 @@ export default function LoginPage() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,16 +20,10 @@ export default function LoginPage() {
     setError('');
 
     try {
-      // TODO: Implement actual authentication
-      console.log('Login attempt:', formData);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // For now, just show success message
-      alert('Login functionality will be implemented soon!');
+      await authService.login(formData);
+      router.push('/dashboard');
     } catch (err) {
-      setError('Login failed. Please try again.');
+      setError(err instanceof Error ? err.message : 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -123,7 +120,7 @@ export default function LoginPage() {
           </div>
           
           <div className="text-center text-sm text-gray-600">
-            <p>Demo platform - Authentication coming soon!</p>
+            <p>Demo credentials: admin@example.com / password</p>
           </div>
         </form>
       </div>

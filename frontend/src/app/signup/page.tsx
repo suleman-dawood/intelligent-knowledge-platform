@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { authService } from '../../lib/auth';
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
@@ -13,6 +15,7 @@ export default function SignupPage() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,16 +29,11 @@ export default function SignupPage() {
     }
 
     try {
-      // TODO: Implement actual registration
-      console.log('Signup attempt:', formData);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // For now, just show success message
-      alert('Signup functionality will be implemented soon!');
+      const { confirmPassword, ...signupData } = formData;
+      await authService.signup(signupData);
+      router.push('/dashboard');
     } catch (err) {
-      setError('Registration failed. Please try again.');
+      setError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -179,7 +177,7 @@ export default function SignupPage() {
           </div>
           
           <div className="text-center text-sm text-gray-600">
-            <p>Demo platform - Authentication coming soon!</p>
+            <p>Create your account to get started</p>
           </div>
         </form>
       </div>

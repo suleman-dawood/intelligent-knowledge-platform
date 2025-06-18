@@ -23,6 +23,8 @@ interface FileUpload {
   progress: number
   status: 'uploading' | 'success' | 'error'
   error?: string
+  fileId?: string
+  url?: string
 }
 
 interface FormData {
@@ -129,26 +131,41 @@ export default function AddContentModal({ isOpen, onClose, onSubmit }: AddConten
     return newErrors
   }, [formData, files])
 
-  const simulateUpload = useCallback((fileId: string) => {
-    let progress = 0
-    const interval = setInterval(() => {
-      progress += Math.random() * 30
-      if (progress >= 100) {
-        progress = 100
-        clearInterval(interval)
+  const uploadFile = useCallback(async (fileUpload: FileUpload) => {
+    const { fileStorageService } = await import('../../lib/fileStorage')
+    
+    try {
+      const result = await fileStorageService.uploadFile(
+        fileUpload.file,
+        (progress) => {
+          setFiles(prev => prev.map(f => 
+            f.id === fileUpload.id 
+              ? { ...f, progress: progress.percentage }
+              : f
+          ))
+        }
+      )
+
+      if (result.success) {
         setFiles(prev => prev.map(f => 
-          f.id === fileId 
-            ? { ...f, progress: 100, status: 'success' as const }
+          f.id === fileUpload.id 
+            ? { ...f, progress: 100, status: 'success' as const, fileId: result.fileId, url: result.url }
             : f
         ))
       } else {
         setFiles(prev => prev.map(f => 
-          f.id === fileId 
-            ? { ...f, progress }
+          f.id === fileUpload.id 
+            ? { ...f, status: 'error' as const, error: result.error }
             : f
         ))
       }
-    }, 200)
+    } catch (error) {
+      setFiles(prev => prev.map(f => 
+        f.id === fileUpload.id 
+          ? { ...f, status: 'error' as const, error: 'Upload failed' }
+          : f
+      ))
+    }
   }, [])
 
   const handleFiles = useCallback((newFiles: FileList | File[]) => {
@@ -183,10 +200,10 @@ export default function AddContentModal({ isOpen, onClose, onSubmit }: AddConten
       setErrors(prev => ({ ...prev, files: undefined }))
       
       validFiles.forEach(fileUpload => {
-        simulateUpload(fileUpload.id)
+        uploadFile(fileUpload)
       })
     }
-  }, [files.length, simulateUpload])
+  }, [files.length, uploadFile])
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
