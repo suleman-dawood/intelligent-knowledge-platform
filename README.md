@@ -57,46 +57,37 @@ A comprehensive knowledge management and integration platform built with Python 
 - Node.js 18+
 - npm or yarn
 
-### Quick Start
+### Quick Start (Recommended)
 
-1. **Clone the repository**
+1. **Clone and setup**
    ```bash
    git clone <repository-url>
    cd Homework
+   pip3 install -r requirements.txt
    ```
 
-2. **Install Python dependencies**
+2. **Start the complete system**
    ```bash
-   pip install -r requirements.txt
+   python3 start_system.py
    ```
+   
+   This automatically:
+   - Installs frontend dependencies if needed
+   - Starts backend (port 3100) and frontend (port 3000)
+   - Monitors both services
 
-3. **Install frontend dependencies**
-   ```bash
-   cd frontend
-   npm install
-   cd ..
-   ```
-
-4. **Start the complete system**
-   ```bash
-   python start_system.py
-   ```
-
-   This will launch both backend (port 3100) and frontend (port 3000) services.
-
-### Manual Setup
+### Manual Setup (Optional)
 
 If you prefer to start services individually:
 
-1. **Start Backend**
+1. **Backend**
    ```bash
-   python -m coordinator.main --host 0.0.0.0 --port 3100
+   python3 -m coordinator.main --host 0.0.0.0 --port 3100
    ```
 
-2. **Start Frontend** (in a new terminal)
+2. **Frontend** (new terminal)
    ```bash
-   cd frontend
-   npm run dev
+   cd frontend && npm install && npm run dev
    ```
 
 ## 🎯 Usage
@@ -139,7 +130,7 @@ If you prefer to start services individually:
 Run comprehensive system tests to verify all functionality:
 
 ```bash
-python test_system.py
+python3 test_system.py
 ```
 
 This will test:
@@ -165,20 +156,19 @@ Homework/
 │   ├── main.py              # Main application entry point
 │   ├── api.py               # REST API endpoints
 │   ├── agent_manager.py     # Agent coordination and task processing
-│   ├── agents/              # Specialized processing agents
-│   └── models/              # Data models and schemas
+│   └── agents/              # Specialized processing agents
 ├── frontend/                # Next.js frontend application
 │   ├── src/
 │   │   ├── app/             # Next.js app router pages
 │   │   ├── components/      # React components
-│   │   ├── lib/             # Utility libraries
-│   │   └── styles/          # CSS and styling
+│   │   └── lib/             # Utility libraries
 │   ├── package.json         # Frontend dependencies
-│   └── next.config.js       # Next.js configuration
-├── start_system.py          # System launcher script
-├── test_system.py           # Comprehensive test suite
+│   └── .env.local           # Frontend environment config
+├── start_system.py          # 🚀 Main launcher (start here!)
+├── test_system.py           # 🧪 System validation
 ├── requirements.txt         # Python dependencies
-└── README.md               # This file
+├── .env.example             # Environment template
+└── README.md               # Documentation
 ```
 
 ## 🔧 Configuration

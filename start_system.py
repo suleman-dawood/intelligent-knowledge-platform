@@ -22,7 +22,7 @@ class SystemLauncher:
         
         # Change to project directory and start coordinator
         backend_cmd = [
-            sys.executable, "-m", "coordinator.main",
+            "python3", "-m", "coordinator.main",
             "--host", "0.0.0.0",
             "--port", "3100",
             "--log-level", "INFO"
