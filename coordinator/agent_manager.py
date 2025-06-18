@@ -31,15 +31,17 @@ class AgentState:
 class AgentManager:
     """Manages agent lifecycle and status."""
     
-    def __init__(self, config: Dict[str, Any], message_broker):
+    def __init__(self, config: Dict[str, Any], message_broker, task_queue=None):
         """Initialize the agent manager.
         
         Args:
             config: Agent configuration
             message_broker: Message broker instance
+            task_queue: Task queue instance
         """
         self.config = config
         self.message_broker = message_broker
+        self.task_queue = task_queue
         
         # Agent pools by type
         self.agents: Dict[str, Dict[str, Dict[str, Any]]] = {
@@ -601,6 +603,10 @@ class AgentManager:
         if not agent["current_tasks"]:
             await self._update_agent_state(agent_id, AgentState.IDLE)
             
+        # Update task queue if available
+        if self.task_queue:
+            await self.task_queue.complete_task(task_id, result)
+        
         # Publish task completion event
         await self._safe_publish_event(
             "task.completed",
@@ -657,6 +663,10 @@ class AgentManager:
         if not agent["current_tasks"]:
             await self._update_agent_state(agent_id, AgentState.IDLE)
             
+        # Update task queue if available
+        if self.task_queue:
+            await self.task_queue.fail_task(task_id, error)
+        
         # Publish task failure event
         await self._safe_publish_event(
             "task.failed",

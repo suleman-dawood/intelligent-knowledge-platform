@@ -48,7 +48,7 @@ class Coordinator:
         # Initialize components
         self.task_queue = TaskQueue()
         self.message_broker = MessageBroker(self.config.get('rabbitmq', {}))
-        self.agent_manager = AgentManager(self.config.get('agents', {}), self.message_broker)
+        self.agent_manager = AgentManager(self.config.get('agents', {}), self.message_broker, self.task_queue)
         
         # Track system state
         self.is_running = False
