@@ -29,6 +29,13 @@ pdfminer.six>=20221105
 pypdf>=3.17.4
 pdfplumber>=0.10.3
 
+# Document Processing (Word & Excel)
+python-docx>=0.8.11
+openpyxl>=3.1.2
+xlrd>=2.0.1
+xlsxwriter>=3.1.9
+pandas>=2.0.0
+
 # NLP & ML
 transformers>=4.28.1
 torch>=2.0.0

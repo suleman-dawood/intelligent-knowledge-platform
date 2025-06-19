@@ -9,11 +9,14 @@ Provides HTTP endpoints for interacting with the system.
 import logging
 import asyncio
 import json
+import base64
+import tempfile
+import os
 from typing import Dict, List, Any, Optional, Set
 from datetime import datetime
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, Query, Body, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, Query, Body, WebSocket, WebSocketDisconnect, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -258,6 +261,48 @@ def create_api(coordinator):
             
         except Exception as e:
             logger.error(f"Error processing content: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.post("/api/upload-document", response_model=Dict[str, str])
+    async def upload_document(
+        file: UploadFile = File(...),
+        coordinator=Depends(get_coordinator)
+    ):
+        """Upload and process Word or Excel documents."""
+        try:
+            # Check file type
+            file_extension = os.path.splitext(file.filename)[1].lower()
+            
+            if file_extension not in ['.docx', '.doc', '.xlsx', '.xls']:
+                raise HTTPException(
+                    status_code=400, 
+                    detail="Unsupported file type. Only Word (.docx, .doc) and Excel (.xlsx, .xls) files are supported."
+                )
+            
+            # Read file content
+            file_content = await file.read()
+            
+            # Encode file content as base64
+            file_content_b64 = base64.b64encode(file_content).decode('utf-8')
+            
+            # Determine file type
+            file_type = 'word' if file_extension in ['.docx', '.doc'] else 'excel'
+            
+            # Prepare task data
+            task_data = {
+                "file_name": file.filename,
+                "file_type": file_type,
+                "file_content": file_content_b64,
+                "file_size": len(file_content)
+            }
+            
+            # Submit document processing task
+            task_id = await coordinator.submit_task("process_document", task_data)
+            
+            return {"task_id": task_id, "status": "submitted", "file_type": file_type}
+            
+        except Exception as e:
+            logger.error(f"Error uploading document: {e}")
             raise HTTPException(status_code=500, detail=str(e))
     
     @app.get("/search", response_model=List[SearchResult])

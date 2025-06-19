@@ -55,6 +55,8 @@ interface AddContentModalProps {
 const CONTENT_TYPES = [
   { value: 'text', label: 'Text/Article', icon: Type, description: 'Plain text or article content' },
   { value: 'pdf', label: 'PDF Document', icon: FileText, description: 'Upload PDF files' },
+  { value: 'word', label: 'Word Document', icon: FileText, description: 'Upload Word documents (.docx, .doc)' },
+  { value: 'excel', label: 'Excel Spreadsheet', icon: FileText, description: 'Upload Excel files (.xlsx, .xls)' },
   { value: 'url', label: 'Web URL', icon: Globe, description: 'Scrape content from web pages' },
   { value: 'academic', label: 'Academic Paper', icon: GraduationCap, description: 'Research papers and publications' },
 ]
@@ -70,13 +72,40 @@ const getFileIcon = (fileType: string) => {
   return File
 }
 
-const validateFile = (file: File): string | null => {
+const validateFile = (file: File, contentType?: string): string | null => {
   if (file.size > MAX_FILE_SIZE) {
     return `File size must be less than ${MAX_FILE_SIZE / 1024 / 1024}MB`
   }
   
-  if (file.type !== 'application/pdf') {
-    return 'Only PDF files are supported'
+  // Check file type based on content type or file extension
+  const fileName = file.name.toLowerCase()
+  const fileExtension = fileName.split('.').pop()
+  
+  if (contentType === 'pdf') {
+    if (file.type !== 'application/pdf' && !fileName.endsWith('.pdf')) {
+      return 'Only PDF files are supported'
+    }
+  } else if (contentType === 'word') {
+    const wordTypes = [
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword'
+    ]
+    if (!wordTypes.includes(file.type) && !['docx', 'doc'].includes(fileExtension || '')) {
+      return 'Only Word documents (.docx, .doc) are supported'
+    }
+  } else if (contentType === 'excel') {
+    const excelTypes = [
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-excel'
+    ]
+    if (!excelTypes.includes(file.type) && !['xlsx', 'xls'].includes(fileExtension || '')) {
+      return 'Only Excel files (.xlsx, .xls) are supported'
+    }
+  } else {
+    // Default validation for other content types
+    if (file.type !== 'application/pdf') {
+      return 'Only PDF files are supported'
+    }
   }
   
   return null
@@ -125,6 +154,14 @@ export default function AddContentModal({ isOpen, onClose, onSubmit }: AddConten
     } else if (formData.contentType === 'pdf') {
       if (files.length === 0) {
         newErrors.files = 'Please upload a PDF file'
+      }
+    } else if (formData.contentType === 'word') {
+      if (files.length === 0) {
+        newErrors.files = 'Please upload a Word document'
+      }
+    } else if (formData.contentType === 'excel') {
+      if (files.length === 0) {
+        newErrors.files = 'Please upload an Excel file'
       }
     }
     
@@ -179,7 +216,7 @@ export default function AddContentModal({ isOpen, onClose, onSubmit }: AddConten
     const validFiles: FileUpload[] = []
     
     fileArray.forEach(file => {
-      const error = validateFile(file)
+      const error = validateFile(file, formData.contentType)
       if (error) {
         setErrors(prev => ({ ...prev, files: error }))
         return
@@ -203,7 +240,7 @@ export default function AddContentModal({ isOpen, onClose, onSubmit }: AddConten
         uploadFile(fileUpload)
       })
     }
-  }, [files.length, uploadFile])
+  }, [files.length, uploadFile, formData.contentType])
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -280,24 +317,45 @@ export default function AddContentModal({ isOpen, onClose, onSubmit }: AddConten
       if (onSubmit) {
         await onSubmit(submissionData)
       } else {
-        // Default submission logic
-        const formDataToSend = new FormData()
-        formDataToSend.append('type', formData.contentType)
-        formDataToSend.append('title', formData.title)
-        formDataToSend.append('content', formData.content)
-        formDataToSend.append('url', formData.url)
-        
-        if (files[0]?.file) {
+        // Handle different content types with appropriate endpoints
+        if (formData.contentType === 'word' || formData.contentType === 'excel') {
+          // Use the document upload endpoint for Word and Excel files
+          if (!files[0]?.file) {
+            throw new Error('No file selected')
+          }
+          
+          const formDataToSend = new FormData()
           formDataToSend.append('file', files[0].file)
-        }
+          
+          const response = await fetch('/api/upload-document', {
+            method: 'POST',
+            body: formDataToSend,
+          })
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}))
+            throw new Error(errorData.detail || 'Failed to upload document')
+          }
+        } else {
+          // Default submission logic for other content types
+          const formDataToSend = new FormData()
+          formDataToSend.append('type', formData.contentType)
+          formDataToSend.append('title', formData.title)
+          formDataToSend.append('content', formData.content)
+          formDataToSend.append('url', formData.url)
+          
+          if (files[0]?.file) {
+            formDataToSend.append('file', files[0].file)
+          }
 
-        const response = await fetch('/api/content', {
-          method: 'POST',
-          body: formDataToSend,
-        })
+          const response = await fetch('/api/content', {
+            method: 'POST',
+            body: formDataToSend,
+          })
 
-        if (!response.ok) {
-          throw new Error('Failed to add content')
+          if (!response.ok) {
+            throw new Error('Failed to add content')
+          }
         }
       }
 

@@ -37,30 +37,52 @@ export default function SearchPage() {
   // Handle content submission from modal
   const handleAddContent = async (data: any) => {
     try {
-      const formData = new FormData();
-      formData.append('type', data.type);
-      formData.append('title', data.title);
-      formData.append('content', data.content);
-      formData.append('url', data.url);
-      
-      if (data.file) {
-        formData.append('file', data.file);
-      }
+      // Handle different content types with appropriate endpoints
+      if (data.type === 'word' || data.type === 'excel') {
+        // Use the document upload endpoint for Word and Excel files
+        if (!data.file) {
+          throw new Error('No file selected')
+        }
+        
+        const formData = new FormData()
+        formData.append('file', data.file)
+        
+        const response = await fetch('/api/upload-document', {
+          method: 'POST',
+          body: formData,
+        })
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}))
+          throw new Error(errorData.detail || 'Failed to upload document')
+        }
+      } else {
+        // Default submission logic for other content types
+        const formData = new FormData()
+        formData.append('type', data.type)
+        formData.append('title', data.title)
+        formData.append('content', data.content)
+        formData.append('url', data.url)
+        
+        if (data.file) {
+          formData.append('file', data.file)
+        }
 
-      const response = await fetch('/api/content', {
-        method: 'POST',
-        body: formData,
-      });
+        const response = await fetch('/api/content', {
+          method: 'POST',
+          body: formData,
+        })
 
-      if (!response.ok) {
-        throw new Error('Failed to add content');
+        if (!response.ok) {
+          throw new Error('Failed to add content')
+        }
       }
 
       // Optionally refresh search results or show success message
     } catch (err) {
-      throw err; // Re-throw to let modal handle the error
+      throw err // Re-throw to let modal handle the error
     }
-  };
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

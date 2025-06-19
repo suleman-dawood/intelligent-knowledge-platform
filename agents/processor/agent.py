@@ -27,6 +27,7 @@ from agents.processor.text_processor import TextProcessor
 from agents.processor.concept_extractor import ConceptExtractor
 from agents.processor.entity_recognizer import EntityRecognizer
 from agents.processor.sentiment_analyzer import SentimentAnalyzer
+from agents.processor.document_processor import DocumentProcessor
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -57,6 +58,7 @@ class ProcessorAgent:
         self.concept_extractor = ConceptExtractor(self.config)
         self.entity_recognizer = EntityRecognizer(self.config)
         self.sentiment_analyzer = SentimentAnalyzer(self.config)
+        self.document_processor = DocumentProcessor(self.config)
         
         # Track current task
         self.current_task_id = None
@@ -157,6 +159,12 @@ class ProcessorAgent:
                 result = await self.entity_recognizer.recognize(task_data)
             elif task_type == "analyze_sentiment":
                 result = await self.sentiment_analyzer.analyze(task_data)
+            elif task_type == "process_document":
+                result = await self.document_processor.process(task_data)
+            elif task_type == "process_word":
+                result = await self.document_processor.process(task_data)
+            elif task_type == "process_excel":
+                result = await self.document_processor.process(task_data)
             else:
                 logger.warning(f"Unknown task type: {task_type}")
                 
