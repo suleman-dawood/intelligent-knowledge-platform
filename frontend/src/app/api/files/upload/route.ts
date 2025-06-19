@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { writeFile, mkdir } from 'fs/promises'
 import { existsSync } from 'fs'
 import path from 'path'
-
-// In-memory file metadata storage (in production, use a database)
-const fileMetadata: Map<string, any> = new Map()
+import { setFileMetadata, type FileMetadata } from '@/lib/fileStorage'
 
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads')
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
@@ -72,8 +70,8 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes)
     await writeFile(filePath, buffer)
 
-    // Store metadata
-    const metadata = {
+    // Store metadata using the fileStorage module
+    const metadata: FileMetadata = {
       id: fileId,
       filename: originalFilename || file.name,
       storedFilename,
@@ -84,7 +82,7 @@ export async function POST(request: NextRequest) {
       path: filePath
     }
 
-    fileMetadata.set(fileId, metadata)
+    setFileMetadata(fileId, metadata)
 
     // Return success response
     return NextResponse.json({
@@ -103,7 +101,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
-
-// Export the metadata map for use in other API routes
-export { fileMetadata } 
+} 

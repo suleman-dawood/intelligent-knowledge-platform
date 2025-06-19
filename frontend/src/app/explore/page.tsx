@@ -44,7 +44,7 @@ export default function ExplorePage() {
       setEntityDetails(details)
       
       // Fetch subgraph centered on this node
-      const subgraph = await getKnowledgeGraph(nodeId, graphDepth)
+      const subgraph = await getKnowledgeGraph({ nodeId, depth: graphDepth })
       setGraphData(subgraph)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load entity details')
@@ -61,7 +61,7 @@ export default function ExplorePage() {
     if (selectedNode) {
       setLoading(true)
       try {
-        const subgraph = await getKnowledgeGraph(selectedNode, newDepth)
+        const subgraph = await getKnowledgeGraph({ nodeId: selectedNode, depth: newDepth })
         setGraphData(subgraph)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to update graph depth')

@@ -26,6 +26,10 @@ interface ConceptMapData {
     importance: number
     position: { x: number; y: number }
     isRoot?: boolean
+    x?: number
+    y?: number
+    fx?: number | null
+    fy?: number | null
   }>
   relationships: Array<{
     source: string
@@ -128,7 +132,14 @@ export default function VisualizationComponent({
   }, [type, data, width, height, theme, layout])
 
   const renderConceptMap = (svg: d3.Selection<SVGSVGElement, unknown, null, undefined>, data: ConceptMapData) => {
-    const simulation = d3.forceSimulation(data.concepts)
+    // Type the nodes for d3 simulation
+    const nodes = data.concepts.map(concept => ({
+      ...concept,
+      x: concept.position.x,
+      y: concept.position.y
+    }))
+
+    const simulation = d3.forceSimulation(nodes as any)
       .force('link', d3.forceLink(data.relationships).id((d: any) => d.id).distance(100))
       .force('charge', d3.forceManyBody().strength(-300))
       .force('center', d3.forceCenter(width / 2, height / 2))
@@ -145,7 +156,7 @@ export default function VisualizationComponent({
     // Create nodes
     const node = svg.append('g')
       .selectAll('circle')
-      .data(data.concepts)
+      .data(nodes)
       .enter().append('circle')
       .attr('r', (d: any) => 5 + d.importance * 15)
       .attr('fill', (d: any) => d.isRoot ? '#3b82f6' : '#10b981')
@@ -156,7 +167,7 @@ export default function VisualizationComponent({
     // Add labels
     const label = svg.append('g')
       .selectAll('text')
-      .data(data.concepts)
+      .data(nodes)
       .enter().append('text')
       .text((d: any) => d.label)
       .attr('font-size', 12)
@@ -278,13 +289,15 @@ export default function VisualizationComponent({
       .attr('transform', 'translate(50, 50)')
 
     // Add links
+    const linkGenerator = d3.linkHorizontal<any, any>()
+      .x((d: any) => d.y)
+      .y((d: any) => d.x)
+
     g.selectAll('.link')
       .data(root.links())
       .enter().append('path')
       .attr('class', 'link')
-      .attr('d', d3.linkHorizontal()
-        .x((d: any) => d.y)
-        .y((d: any) => d.x))
+      .attr('d', linkGenerator as any)
       .attr('fill', 'none')
       .attr('stroke', theme === 'dark' ? '#64748b' : '#94a3b8')
       .attr('stroke-width', 2)
