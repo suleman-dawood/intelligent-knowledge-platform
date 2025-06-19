@@ -8,15 +8,65 @@ Provides HTTP endpoints for interacting with the system.
 
 import logging
 import asyncio
-from typing import Dict, List, Any, Optional
+import json
+import base64
+import tempfile
+import os
+from typing import Dict, List, Any, Optional, Set
 from datetime import datetime
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, Query
+from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, Query, Body, WebSocket, WebSocketDisconnect, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
+
+
+class ConnectionManager:
+    """Manages WebSocket connections."""
+    
+    def __init__(self):
+        self.active_connections: Set[WebSocket] = set()
+    
+    async def connect(self, websocket: WebSocket):
+        """Accept a new WebSocket connection."""
+        await websocket.accept()
+        self.active_connections.add(websocket)
+        logger.info(f"WebSocket connected. Active connections: {len(self.active_connections)}")
+    
+    def disconnect(self, websocket: WebSocket):
+        """Remove a WebSocket connection."""
+        self.active_connections.discard(websocket)
+        logger.info(f"WebSocket disconnected. Active connections: {len(self.active_connections)}")
+    
+    async def send_personal_message(self, message: str, websocket: WebSocket):
+        """Send a message to a specific WebSocket."""
+        try:
+            await websocket.send_text(message)
+        except Exception as e:
+            logger.warning(f"Failed to send message to WebSocket: {e}")
+            self.disconnect(websocket)
+    
+    async def broadcast(self, message: str):
+        """Broadcast a message to all connected WebSockets."""
+        if not self.active_connections:
+            return
+            
+        disconnected = set()
+        for connection in self.active_connections:
+            try:
+                await connection.send_text(message)
+            except Exception as e:
+                logger.warning(f"Failed to broadcast to WebSocket: {e}")
+                disconnected.add(connection)
+        
+        # Remove disconnected connections
+        for connection in disconnected:
+            self.disconnect(connection)
+
+# Global connection manager
+manager = ConnectionManager()
 
 
 # Request & Response Models
@@ -174,6 +224,87 @@ def create_api(coordinator):
         """Get agent status information."""
         return await coordinator.agent_manager.get_agent_status()
     
+    @app.post("/api/process-content", response_model=Dict[str, str])
+    async def process_content(
+        request: Dict[str, Any] = Body(...),
+        coordinator=Depends(get_coordinator)
+    ):
+        """Process new content submitted by users."""
+        try:
+            content_type = request.get("content_type") or request.get("type")
+            title = request.get("title")
+            
+            # Prepare task data based on content type
+            task_data = {
+                "title": title,
+                "type": content_type
+            }
+            
+            # Determine task type and add specific data
+            if content_type == "text" or content_type == "academic":
+                task_data["content"] = request.get("content")
+                task_type = "process_text"
+            elif content_type == "url":
+                task_data["url"] = request.get("url")
+                task_type = "scrape_web"
+            elif content_type == "pdf":
+                task_data["filename"] = request.get("filename")
+                task_data["size"] = request.get("size")
+                task_type = "scrape_pdf"
+            else:
+                raise HTTPException(status_code=400, detail=f"Unsupported content type: {content_type}")
+            
+            # Submit the task
+            task_id = await coordinator.submit_task(task_type, task_data)
+            
+            return {"task_id": task_id, "status": "submitted"}
+            
+        except Exception as e:
+            logger.error(f"Error processing content: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.post("/api/upload-document", response_model=Dict[str, str])
+    async def upload_document(
+        file: UploadFile = File(...),
+        coordinator=Depends(get_coordinator)
+    ):
+        """Upload and process Word or Excel documents."""
+        try:
+            # Check file type
+            file_extension = os.path.splitext(file.filename)[1].lower()
+            
+            if file_extension not in ['.docx', '.doc', '.xlsx', '.xls']:
+                raise HTTPException(
+                    status_code=400, 
+                    detail="Unsupported file type. Only Word (.docx, .doc) and Excel (.xlsx, .xls) files are supported."
+                )
+            
+            # Read file content
+            file_content = await file.read()
+            
+            # Encode file content as base64
+            file_content_b64 = base64.b64encode(file_content).decode('utf-8')
+            
+            # Determine file type
+            file_type = 'word' if file_extension in ['.docx', '.doc'] else 'excel'
+            
+            # Prepare task data
+            task_data = {
+                "file_name": file.filename,
+                "file_type": file_type,
+                "file_content": file_content_b64,
+                "file_size": len(file_content)
+            }
+            
+            # Submit document processing task
+            task_id = await coordinator.submit_task("process_document", task_data)
+            
+            return {"task_id": task_id, "status": "submitted", "file_type": file_type}
+            
+        except Exception as e:
+            logger.error(f"Error uploading document: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
     @app.get("/search", response_model=List[SearchResult])
     async def search_knowledge(
         q: str = Query(..., description="Search query"),
@@ -184,39 +315,48 @@ def create_api(coordinator):
             # Submit a search task to the UI agent
             task_id = await coordinator.submit_task("search", {"query": q, "max_results": 10})
             
-            # Wait for the search task to complete (with timeout)
-            max_wait_time = 30  # 30 seconds timeout
+            # Wait for the search task to complete with improved timeout handling
+            max_wait_time = 15  # Reduced from 30 to 15 seconds
             wait_time = 0
             
             while wait_time < max_wait_time:
-                task_status = await coordinator.get_task_status(task_id)
-                
-                if task_status.get("status") == "completed":
-                    results = task_status.get("result", {}).get("results", [])
+                try:
+                    task_status = await coordinator.get_task_status(task_id)
                     
-                    # Convert results to SearchResult format
-                    search_results = []
-                    for i, result in enumerate(results):
-                        search_results.append(SearchResult(
-                            id=result.get("id", str(i)),
-                            title=result.get("title", f"Result {i+1}"),
-                            content=result.get("content", result.get("text", "")),
-                            source=result.get("source", "knowledge_graph"),
-                            score=result.get("score", 0.8),
-                            entities=result.get("entities", [])
-                        ))
+                    if task_status.get("status") == "completed":
+                        results = task_status.get("result", {}).get("results", [])
+                        
+                        # Convert results to SearchResult format
+                        search_results = []
+                        for i, result in enumerate(results):
+                            search_results.append(SearchResult(
+                                id=result.get("id", str(i)),
+                                title=result.get("title", f"Result {i+1}"),
+                                content=result.get("content", result.get("text", "")),
+                                source=result.get("source", "knowledge_graph"),
+                                score=result.get("score", 0.8),
+                                entities=result.get("entities", [])
+                            ))
+                        
+                        return search_results
                     
-                    return search_results
-                
-                elif task_status.get("status") == "failed":
-                    raise HTTPException(status_code=500, detail=f"Search failed: {task_status.get('error', 'Unknown error')}")
-                
-                # Wait before checking again
-                await asyncio.sleep(1)
-                wait_time += 1
+                    elif task_status.get("status") == "failed":
+                        error_msg = task_status.get('error', 'Unknown error')
+                        logger.error(f"Search task {task_id} failed: {error_msg}")
+                        # Return empty results instead of raising exception for better UX
+                        return []
+                    
+                    # Wait before checking again with exponential backoff
+                    await asyncio.sleep(min(0.5 * (2 ** min(wait_time, 4)), 2.0))
+                    wait_time += 1
+                    
+                except Exception as e:
+                    logger.error(f"Error checking search task status {task_id}: {e}")
+                    await asyncio.sleep(1)
+                    wait_time += 1
             
-            # Timeout - return empty results
-            logger.warning(f"Search task {task_id} timed out")
+            # Timeout - return empty results with warning
+            logger.warning(f"Search task {task_id} timed out after {max_wait_time} seconds")
             return []
             
         except Exception as e:
@@ -378,6 +518,52 @@ def create_api(coordinator):
         except Exception as e:
             logger.error(f"Error getting entity details: {e}")
             raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.websocket("/ws")
+    async def websocket_endpoint(websocket: WebSocket):
+        """WebSocket endpoint for real-time updates."""
+        await manager.connect(websocket)
+        try:
+            while True:
+                # Keep the connection alive and handle incoming messages
+                data = await websocket.receive_text()
+                message_data = json.loads(data)
+                
+                # Handle different message types
+                message_type = message_data.get("type")
+                
+                if message_type == "ping":
+                    await manager.send_personal_message(
+                        json.dumps({"type": "pong", "timestamp": datetime.now().isoformat()}),
+                        websocket
+                    )
+                elif message_type == "subscribe":
+                    # Handle subscription to specific updates
+                    await manager.send_personal_message(
+                        json.dumps({"type": "subscribed", "data": message_data.get("data")}),
+                        websocket
+                    )
+                else:
+                    # Echo back for now
+                    await manager.send_personal_message(
+                        json.dumps({"type": "echo", "data": message_data}),
+                        websocket
+                    )
+                    
+        except WebSocketDisconnect:
+            manager.disconnect(websocket)
+        except Exception as e:
+            logger.error(f"WebSocket error: {e}")
+            manager.disconnect(websocket)
+    
+    @app.get("/health")
+    async def health_check():
+        """Health check endpoint."""
+        return {
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "websocket_connections": len(manager.active_connections)
+        }
     
     return app
 

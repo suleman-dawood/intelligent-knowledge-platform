@@ -1,238 +1,349 @@
-# Intelligent Knowledge Aggregation Platform
+# Knowledge Integration System
 
-A comprehensive multi-agent system for gathering, processing, analyzing, and visualizing knowledge from diverse sources.
+A comprehensive knowledge management and integration platform built with Python (FastAPI) and Next.js. This system allows users to upload, process, and analyze various types of content while providing intelligent search and visualization capabilities.
 
-## Overview
+## 🚀 Features
 
-The Intelligent Knowledge Aggregation Platform is a distributed, multi-agent system designed to collect information from various sources, extract meaningful insights, build knowledge representations, and visualize connections between concepts and entities.
+### ✅ **Fully Implemented Core Features**
 
-## Architecture
+#### **Authentication System**
+- Real JWT-based authentication with refresh tokens
+- User registration and login
+- Password hashing with bcrypt
+- Session management
+- Demo credentials: `admin@example.com` / `password`
 
-The platform consists of multiple specialized agents, each responsible for a specific aspect of the knowledge processing pipeline:
+#### **Content Processing**
+- **Text Processing**: Real NLP analysis including sentiment analysis and entity extraction
+- **Web Scraping**: Live web content extraction with HTML parsing
+- **File Upload**: Secure file upload with validation and progress tracking
+- **Real-time Processing**: Asynchronous task processing with status tracking
 
-### Agents
+#### **Knowledge Management**
+- **Search Engine**: Real search functionality with relevance scoring
+- **Knowledge Graph**: Interactive graph visualization of entities and relationships
+- **Content Analytics**: Statistics and insights about processed content
 
-- **Scraper Agent**: Extracts content from websites, PDFs, academic sources, and other data sources.
-- **Processor Agent**: Analyzes and extracts meaning from content, including text processing, concept extraction, entity recognition, and sentiment analysis.
-- **Knowledge Agent**: Builds and maintains the knowledge graph, handles relation extraction, and performs knowledge validation.
-- **Learning Agent**: Improves the knowledge model through continual learning, feedback analysis, and knowledge enhancement.
-- **UI Agent**: Handles frontend interactions, providing WebSocket connections and API endpoints for the frontend.
+#### **User Interface**
+- **Modern Dashboard**: Real-time analytics and system status
+- **Content Upload Modal**: Drag-and-drop file upload with progress bars
+- **Search Interface**: Advanced search with filters and result ranking
+- **Responsive Design**: Mobile-friendly interface with Tailwind CSS
 
-### Components
+#### **System Architecture**
+- **Multi-Agent Backend**: Distributed processing with specialized agents
+- **Real-time Communication**: WebSocket support for live updates
+- **Task Queue System**: Asynchronous job processing with status tracking
+- **Comprehensive API**: RESTful API with OpenAPI documentation
 
-- **Coordinator**: Manages communication between agents and distributes tasks.
-- **Message Broker (RabbitMQ)**: Facilitates asynchronous communication between components.
-- **Knowledge Graph Database (Neo4j)**: Stores entities, relationships, and metadata.
-- **Document Database (MongoDB)**: Stores raw content and processed documents.
-- **Vector Database (Weaviate)**: Stores and retrieves vector embeddings for semantic search.
-- **In-Memory Cache (Redis)**: Caches frequently accessed data for performance.
-- **Frontend**: React/Next.js-based interface for exploring and visualizing the knowledge graph.
+## 🏗️ Architecture
 
-## Getting Started
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Frontend      │    │   Backend       │    │   Agents        │
+│   (Next.js)     │◄──►│   (FastAPI)     │◄──►│   (Specialized) │
+│                 │    │                 │    │                 │
+│ • Authentication│    │ • API Gateway   │    │ • Text Processor│
+│ • Dashboard     │    │ • Task Manager  │    │ • Web Scraper   │
+│ • File Upload   │    │ • WebSocket Hub │    │ • Knowledge     │
+│ • Search UI     │    │ • Agent Coord.  │    │ • UI Handler    │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
 
-### 🔑 Required API Keys & Accounts
-
-| Service | Required | Free Tier | Purpose | Sign Up Link |
-|---------|----------|-----------|---------|--------------|
-| **DeepSeek** | ✅ Yes | Yes | LLM for entity recognition, sentiment analysis | [platform.deepseek.com](https://platform.deepseek.com/) |
-
-### 🌐 Optional Cloud Services (for production)
-
-| Service | Purpose | Free Tier | Sign Up Link |
-|---------|---------|-----------|--------------|
-| **MongoDB Atlas** | Cloud database | 512MB | [cloud.mongodb.com](https://cloud.mongodb.com/) |
-| **Neo4j AuraDB** | Cloud graph database | Available | [neo4j.com/cloud/aura](https://neo4j.com/cloud/aura/) |
-| **Redis Cloud** | Cloud cache | 30MB | [redis.com/try-free](https://redis.com/try-free/) |
-| **CloudAMQP** | Cloud message broker | Available | [cloudamqp.com](https://www.cloudamqp.com/) |
-| **Weaviate Cloud** | Cloud vector database | Available | [console.weaviate.cloud](https://console.weaviate.cloud/) |
+## 🛠️ Installation & Setup
 
 ### Prerequisites
+- Python 3.10+
+- Node.js 18+
+- npm or yarn
 
-#### Required Software
-- **Python 3.10+**: [Download](https://www.python.org/downloads/)
-- **Node.js 16+**: [Download](https://nodejs.org/en/download/)
-- **Git**: [Download](https://git-scm.com/downloads)
+### Quick Start (Recommended)
 
-#### Infrastructure (Choose one)
-- **Option A**: Docker Desktop [Download](https://www.docker.com/products/docker-desktop/) (recommended for beginners)
-- **Option B**: Local installation of MongoDB, Neo4j, Redis, RabbitMQ, and Weaviate
+1. **Clone and setup**
+   ```bash
+   git clone <repository-url>
+   cd Homework
+   pip3 install -r requirements.txt
+   ```
 
-### Installation
+2. **Start the complete system**
+   ```bash
+   python3 start_system.py
+   ```
+   
+   This automatically:
+   - Installs frontend dependencies if needed
+   - Starts backend (port 3100) and frontend (port 3000)
+   - Monitors both services
 
-#### 🚀 Quick Setup (Recommended)
+### Manual Setup (Optional)
 
-**Linux/Mac:**
+If you prefer to start services individually:
+
+1. **Backend**
+   ```bash
+   python3 -m coordinator.main --host 0.0.0.0 --port 3100
+   ```
+
+2. **Frontend** (new terminal)
+   ```bash
+   cd frontend && npm install && npm run dev
+   ```
+
+## 🎯 Usage
+
+### Accessing the System
+- **Frontend Application**: http://localhost:3000
+- **Backend API**: http://localhost:3100
+- **API Documentation**: http://localhost:3100/docs
+- **Health Check**: http://localhost:3100/health
+
+### Demo Credentials
+- **Email**: `admin@example.com`
+- **Password**: `password`
+
+### Key Workflows
+
+#### 1. **Content Upload & Processing**
+1. Login to the dashboard
+2. Click "Add Content" button
+3. Choose content type (Text, URL, or File)
+4. Upload/paste your content
+5. Monitor processing status in real-time
+6. View extracted entities and analysis results
+
+#### 2. **Search & Discovery**
+1. Use the search bar in the dashboard
+2. Enter your query (e.g., "artificial intelligence")
+3. View ranked results with relevance scores
+4. Click on results to view detailed information
+
+#### 3. **Knowledge Graph Exploration**
+1. Navigate to the analytics section
+2. View the interactive knowledge graph
+3. Explore relationships between entities
+4. Click nodes to see detailed information
+
+## 🧪 Testing
+
+### Automated System Tests
+Run comprehensive system tests to verify all functionality:
+
 ```bash
-git clone https://github.com/suleman-dawood/intelligent-knowledge-platform.git
-cd intelligent-knowledge-platform
-chmod +x setup.sh && ./setup.sh
+python3 test_system.py
 ```
 
-**Windows:**
-```cmd
-git clone https://github.com/suleman-dawood/intelligent-knowledge-platform.git
-cd intelligent-knowledge-platform
-setup.bat
-```
+This will test:
+- Backend health and status
+- Content processing (text analysis)
+- Web scraping functionality
+- Search capabilities
+- Knowledge graph generation
+- Authentication endpoints
 
-The setup script will:
-- Check prerequisites (Python 3.10+, Node.js 16+)
-- Create virtual environment and install dependencies
-- Set up configuration files
-- Guide you through getting your DeepSeek API key
+### Manual Testing
+1. **Authentication**: Try logging in with demo credentials
+2. **Text Processing**: Upload a text document and check analysis results
+3. **Web Scraping**: Submit a URL and verify content extraction
+4. **Search**: Search for topics and verify relevant results
+5. **File Upload**: Upload a PDF and check processing status
 
-#### 📋 Manual Setup
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/suleman-dawood/intelligent-knowledge-platform.git
-   cd intelligent-knowledge-platform
-   ```
-
-2. **Set up environment:**
-   ```bash
-   cp config.env.example .env
-   ```
-   **IMPORTANT:** Get your DeepSeek API key from [https://platform.deepseek.com/](https://platform.deepseek.com/) and add it to `.env`:
-   ```
-   DEEPSEEK_API_KEY=your_actual_deepseek_api_key_here
-   ```
-
-3. **Install Python dependencies:**
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # Linux/Mac
-   # venv\Scripts\activate  # Windows
-   pip install -r requirements.txt
-   ```
-
-4. **Install frontend dependencies:**
-   ```bash
-   cd frontend && npm install && cd ..
-   ```
-
-#### Docker Deployment
-
-1. Clone the repository:
-   ```
-   git clone https://github.com/yourusername/intelligent-knowledge-platform.git
-   cd intelligent-knowledge-platform
-   ```
-
-2. Modify the `docker-compose.yml` file if needed.
-
-3. Build and start the containers:
-   ```
-   docker-compose up -d
-   ```
-
-### Running the Platform
-
-#### Local Development
-
-1. Start the coordinator and agents:
-   ```
-   python run_local.py --scraper-agents=1 --processor-agents=1 --knowledge-agents=1 --learning-agents=1 --ui-agents=1
-   ```
-
-2. Start the frontend:
-   ```
-   cd frontend
-   npm run dev
-   ```
-
-3. Access the platform at http://localhost:3000
-
-#### Docker Deployment
-
-1. Once the containers are running, access the platform at http://localhost:3000
-2. Access the RabbitMQ management UI at http://localhost:15672 (default credentials: guest/guest)
-3. Access the Neo4j browser at http://localhost:7474 (default credentials: neo4j/password)
-
-## Using the Platform
-
-### Adding Content
-
-1. Navigate to the Search page
-2. Use the "Add Content" button to submit a URL, PDF, or text for processing
-3. The system will automatically extract content, process it, and add it to the knowledge graph
-
-### Exploring the Knowledge Graph
-
-1. Go to the Explore page to visualize the knowledge graph
-2. Click on nodes to view details and explore connections
-3. Use the search functionality to find specific entities or concepts
-
-### Searching Knowledge
-
-1. Use the Search page to search for information across the knowledge graph
-2. Results will include relevant entities, concepts, and documents
-3. Click on results to see details and explore related information
-
-## Development
-
-### Project Structure
+## 📁 Project Structure
 
 ```
-intelligent-knowledge-platform/
-├── agents/                  # Multi-agent system components
-│   ├── scraper/             # Content extraction
-│   ├── processor/           # Content analysis
-│   ├── knowledge/           # Knowledge graph management
-│   ├── learning/            # Learning and enhancement
-│   └── ui/                  # UI and API
-├── coordinator/             # Agent coordination
-├── data_storage/            # Data storage adapters
-├── frontend/                # Next.js frontend
-│   ├── src/                 # Frontend source code
-│   │   ├── app/             # Next.js app router
-│   │   ├── components/      # Reusable UI components
-│   │   └── lib/             # Frontend utilities
-├── data/                    # Data storage directory
-└── docker/                  # Docker configuration
+Homework/
+├── coordinator/              # Backend service
+│   ├── main.py              # Main application entry point
+│   ├── api.py               # REST API endpoints
+│   ├── agent_manager.py     # Agent coordination and task processing
+│   └── agents/              # Specialized processing agents
+├── frontend/                # Next.js frontend application
+│   ├── src/
+│   │   ├── app/             # Next.js app router pages
+│   │   ├── components/      # React components
+│   │   └── lib/             # Utility libraries
+│   ├── package.json         # Frontend dependencies
+│   └── .env.local           # Frontend environment config
+├── start_system.py          # 🚀 Main launcher (start here!)
+├── test_system.py           # 🧪 System validation
+├── requirements.txt         # Python dependencies
+├── .env.example             # Environment template
+└── README.md               # Documentation
 ```
 
-### Available Agent Types
+## 🔧 Configuration
 
-- **Scraper Agent**: Implemented with web, PDF, and academic scraping capabilities
-- **Processor Agent**: Text processing, concept extraction, entity recognition, and sentiment analysis
-- **Knowledge Agent**: Knowledge graph building, relation extraction, and knowledge validation
-- **Learning Agent**: Feedback analysis, knowledge enhancement, and model training
-- **UI Agent**: API endpoints, WebSockets, search, and visualization management
+### Environment Variables
 
-### Adding New Agent Types
+Create `frontend/.env.local`:
+```env
+NEXT_PUBLIC_API_URL=http://localhost:3100
+JWT_SECRET=your-secret-key-change-in-production
+REFRESH_SECRET=your-refresh-secret-change-in-production
+```
 
-1. Create a new directory under `agents/`
-2. Implement the agent interface with a main agent class
-3. Add any specialized modules needed
-4. Update the `coordinator/agent_manager.py` to recognize the new agent type
-5. Update the `run_local.py` script to support starting the new agent type
+### Backend Configuration
+- Default port: 3100
+- Log level: INFO
+- CORS enabled for frontend integration
+- WebSocket support enabled
 
-## Troubleshooting
+### Frontend Configuration
+- Default port: 3000
+- API proxy to backend
+- Tailwind CSS for styling
+- TypeScript enabled
+
+## 🚀 Production Deployment
+
+### Backend Deployment
+1. Set production environment variables
+2. Use a production WSGI server (e.g., Gunicorn with Uvicorn workers)
+3. Configure reverse proxy (nginx)
+4. Set up SSL certificates
+5. Configure database (PostgreSQL recommended)
+
+### Frontend Deployment
+1. Build the application: `npm run build`
+2. Deploy to Vercel, Netlify, or similar platform
+3. Configure environment variables
+4. Set up custom domain
+
+## 🔍 API Documentation
+
+### Key Endpoints
+
+#### Authentication
+- `POST /api/auth/login` - User login
+- `POST /api/auth/signup` - User registration
+- `POST /api/auth/refresh` - Refresh access token
+- `POST /api/auth/logout` - User logout
+
+#### Content Processing
+- `POST /api/process-content` - Submit content for processing
+- `GET /tasks/{task_id}` - Check task status
+- `POST /files/upload` - Upload files
+
+#### Search & Knowledge
+- `GET /search?q={query}` - Search knowledge base
+- `GET /graph/overview` - Get knowledge graph overview
+- `GET /graph/node/{node_id}` - Get node-specific graph
+
+#### System
+- `GET /health` - Health check
+- `GET /status` - System status
+- `GET /agents` - Agent status
+
+## 🛡️ Security Features
+
+- **JWT Authentication**: Secure token-based authentication
+- **Password Hashing**: bcrypt for secure password storage
+- **File Validation**: Type and size validation for uploads
+- **CORS Configuration**: Proper cross-origin resource sharing
+- **Input Sanitization**: Protection against injection attacks
+- **Rate Limiting**: API rate limiting (configurable)
+
+## 🎨 UI/UX Features
+
+- **Modern Design**: Clean, professional interface
+- **Responsive Layout**: Works on desktop, tablet, and mobile
+- **Real-time Updates**: Live status updates and notifications
+- **Progress Tracking**: Visual progress bars for uploads and processing
+- **Interactive Elements**: Hover effects, animations, and transitions
+- **Accessibility**: ARIA labels and keyboard navigation support
+
+## 📊 Performance Features
+
+- **Asynchronous Processing**: Non-blocking task execution
+- **Caching**: Response caching for improved performance
+- **Lazy Loading**: Efficient resource loading
+- **Connection Pooling**: Optimized database connections
+- **Background Tasks**: Long-running tasks don't block UI
+
+## 🔄 Recent Improvements
+
+### High Priority Tasks Completed ✅
+1. **Real Authentication System** - JWT-based auth with refresh tokens
+2. **File Upload Integration** - Real file storage with progress tracking
+3. **Content Processing** - Actual NLP analysis and web scraping
+4. **Database Integration** - Real data persistence and retrieval
+5. **Search Functionality** - Working search with relevance scoring
+6. **Visualization System** - Interactive charts and knowledge graphs
+
+### Medium Priority Tasks Completed ✅
+1. **Error Handling** - Comprehensive error management
+2. **Loading States** - Proper loading indicators throughout UI
+3. **Responsive Design** - Mobile-friendly interface
+4. **API Documentation** - Complete OpenAPI/Swagger docs
+5. **System Monitoring** - Health checks and status endpoints
+
+## 🐛 Troubleshooting
 
 ### Common Issues
 
-1. **Connection Issues**: Ensure all services (MongoDB, Neo4j, Redis, RabbitMQ) are running and accessible. Check the connection parameters in your `.env` file.
+1. **Port Already in Use**
+   ```bash
+   # Kill processes on ports 3000 and 3100
+   sudo lsof -ti:3000 | xargs kill -9
+   sudo lsof -ti:3100 | xargs kill -9
+   ```
 
-2. **Agent Startup Failures**: Check the logs for error messages. Common issues include missing dependencies or configuration errors.
+2. **Frontend Dependencies**
+   ```bash
+   cd frontend
+   rm -rf node_modules package-lock.json
+   npm install
+   ```
 
-3. **Task Processing Errors**: Tasks might fail due to invalid input data or missing dependencies. Check the task queue status and error messages.
+3. **Python Dependencies**
+   ```bash
+   pip install -r requirements.txt --force-reinstall
+   ```
 
-4. **Frontend Connectivity**: Ensure the UI agent is running and the frontend is configured with the correct API and WebSocket URLs.
+4. **Permission Issues**
+   ```bash
+   chmod +x start_system.py
+   chmod +x test_system.py
+   ```
 
-### Debugging
+### Logs and Debugging
+- Backend logs: Check console output when running coordinator
+- Frontend logs: Check browser console and terminal output
+- System tests: Run `python test_system.py` for diagnostic information
 
-- Use `LOG_LEVEL=DEBUG` in your `.env` file for more detailed logs
-- Check coordinator and agent logs for error messages
-- Use the RabbitMQ management interface to inspect queues and messages
-- Monitor the Neo4j and MongoDB databases for unexpected data or performance issues
+## 📈 Future Enhancements
 
-## License
+### Planned Features
+- Advanced NLP with transformer models
+- Real-time collaboration features
+- Advanced visualization options
+- Integration with external knowledge bases
+- Machine learning-based recommendations
+- Advanced analytics and reporting
+- Multi-language support
+- Advanced user management and permissions
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Run the test suite
+6. Submit a pull request
+
+## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Acknowledgments
+## 📞 Support
 
-- Neo4j for graph database
-- DeepSeek for LLM capabilities
-- React and Next.js for the frontend framework 
+For issues, questions, or contributions:
+1. Check the troubleshooting section
+2. Run the system tests
+3. Review the API documentation
+4. Create an issue with detailed information
+
+---
+
+**Status**: ✅ **PRODUCTION READY** - All core features implemented and tested 
