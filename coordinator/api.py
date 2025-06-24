@@ -560,43 +560,59 @@ def create_api(coordinator):
     async def get_content_list(coordinator=Depends(get_coordinator)):
         """Get list of uploaded content files."""
         try:
-            # Mock content for now - in a real implementation, this would fetch from database
-            content_files = [
-                {
-                    "id": "1",
-                    "name": "Machine Learning Fundamentals.pdf",
-                    "type": "pdf",
-                    "size": 2048000,
-                    "uploadDate": "2024-01-15T10:30:00Z",
-                    "lastModified": "2024-01-15T10:30:00Z",
-                    "tags": ["machine learning", "AI", "fundamentals"],
-                    "summary": "Comprehensive guide to machine learning concepts and algorithms.",
-                },
-                {
-                    "id": "2",
-                    "name": "Data Analysis Report.xlsx",
-                    "type": "xlsx",
-                    "size": 512000,
-                    "uploadDate": "2024-01-14T14:20:00Z",
-                    "lastModified": "2024-01-16T09:15:00Z",
-                    "tags": ["data analysis", "statistics", "report"],
-                    "summary": "Statistical analysis of user behavior data with visualizations.",
-                },
-                {
-                    "id": "3",
-                    "name": "Project Proposal.docx",
-                    "type": "docx",
-                    "size": 256000,
-                    "uploadDate": "2024-01-13T16:45:00Z",
-                    "lastModified": "2024-01-13T16:45:00Z",
-                    "tags": ["proposal", "project", "business"],
-                    "summary": "Detailed project proposal for the new AI initiative.",
-                },
-            ]
+            import os
+            import mimetypes
+            from pathlib import Path
+            
+            # Path to the uploads directory
+            uploads_dir = Path("frontend/uploads")
+            content_files = []
+            
+            if uploads_dir.exists():
+                for file_path in uploads_dir.iterdir():
+                    if file_path.is_file():
+                        # Get file stats
+                        stat = file_path.stat()
+                        
+                        # Determine file type from extension
+                        file_ext = file_path.suffix.lower()
+                        if file_ext in ['.pdf']:
+                            file_type = 'pdf'
+                        elif file_ext in ['.docx', '.doc']:
+                            file_type = 'docx'
+                        elif file_ext in ['.xlsx', '.xls']:
+                            file_type = 'xlsx'
+                        elif file_ext in ['.png', '.jpg', '.jpeg', '.gif', '.bmp']:
+                            file_type = 'image'
+                        elif file_ext in ['.mp4', '.avi', '.mov', '.wmv']:
+                            file_type = 'video'
+                        elif file_ext in ['.mp3', '.wav', '.flac', '.aac']:
+                            file_type = 'audio'
+                        else:
+                            file_type = 'other'
+                        
+                        # Create file info
+                        file_info = {
+                            "id": file_path.name,  # Use filename as ID
+                            "name": file_path.name,
+                            "type": file_type,
+                            "size": stat.st_size,
+                            "uploadDate": datetime.fromtimestamp(stat.st_ctime).isoformat() + "Z",
+                            "lastModified": datetime.fromtimestamp(stat.st_mtime).isoformat() + "Z",
+                            "tags": [file_type, "uploaded"],  # Basic tags
+                            "summary": f"Uploaded {file_type} file: {file_path.name}",
+                            "url": f"/uploads/{file_path.name}"
+                        }
+                        content_files.append(file_info)
+            
+            # Sort by upload date (newest first)
+            content_files.sort(key=lambda x: x["uploadDate"], reverse=True)
+            
             return {"files": content_files}
         except Exception as e:
             logger.error(f"Error fetching content: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
+            # Fallback to empty list instead of mock data
+            return {"files": []}
 
     @app.post("/api/upload")
     async def upload_files(
