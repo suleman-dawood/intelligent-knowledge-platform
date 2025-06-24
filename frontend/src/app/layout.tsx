@@ -2,13 +2,14 @@ import './globals.css'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import Header from '../components/layout/Header'
+import Footer from '../components/Footer'
 import NotificationSystem from '../components/ui/NotificationSystem'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Intelligent Knowledge Aggregation Platform',
-  description: 'AI-powered knowledge management and discovery platform',
+  title: 'Homework Analyzer - AI-Powered Learning Platform',
+  description: 'Transform your learning experience with AI-powered document analysis, knowledge extraction, and intelligent insights.',
 }
 
 export default function RootLayout({
@@ -19,11 +20,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="min-h-screen flex flex-col bg-secondary-50">
           <Header />
-          <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+          <main className="flex-1">
             {children}
           </main>
+          <Footer />
           <NotificationSystem />
         </div>
       </body>

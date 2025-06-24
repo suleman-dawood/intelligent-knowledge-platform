@@ -2,7 +2,21 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { MagnifyingGlassIcon, ChartBarIcon, CircleStackIcon, MapIcon } from '@heroicons/react/24/outline'
+import { motion } from 'framer-motion'
+import { 
+  MagnifyingGlassIcon, 
+  DocumentTextIcon, 
+  ShareIcon, 
+  CogIcon,
+  SparklesIcon,
+  AcademicCapIcon,
+  BookOpenIcon,
+  LightBulbIcon,
+  ChartBarIcon,
+  UserGroupIcon,
+  DocumentDuplicateIcon,
+  ArrowRightIcon
+} from '@heroicons/react/24/outline'
 import SearchBox from '@/components/SearchBox'
 
 export default function Home() {
@@ -15,171 +29,254 @@ export default function Home() {
     }
   }
   
+  const features = [
+    {
+      icon: SparklesIcon,
+      title: 'AI-Powered Analysis',
+      description: 'Advanced AI algorithms analyze your documents to extract key concepts, generate summaries, and provide intelligent insights.',
+      color: 'bg-primary-100 text-primary-600'
+    },
+    {
+      icon: BookOpenIcon,
+      title: 'Multi-Format Support',
+      description: 'Upload PDFs, Word documents, Excel sheets, and more. Our system processes various file formats seamlessly.',
+      color: 'bg-success-100 text-success-600'
+    },
+    {
+      icon: ShareIcon,
+      title: 'Knowledge Graph',
+      description: 'Visualize connections between concepts and topics through our interactive knowledge graph visualization.',
+      color: 'bg-warning-100 text-warning-600'
+    },
+    {
+      icon: LightBulbIcon,
+      title: 'Smart Insights',
+      description: 'Get personalized recommendations and discover new learning paths based on your uploaded content.',
+      color: 'bg-error-100 text-error-600'
+    },
+    {
+      icon: ChartBarIcon,
+      title: 'Progress Tracking',
+      description: 'Monitor your learning progress and see detailed analytics about your study patterns and performance.',
+      color: 'bg-info-100 text-info-600'
+    },
+    {
+      icon: UserGroupIcon,
+      title: 'Collaborative Learning',
+      description: 'Share insights with classmates, create study groups, and learn together in a collaborative environment.',
+      color: 'bg-secondary-100 text-secondary-600'
+    }
+  ]
+
+  const stats = [
+    { label: 'Documents Processed', value: '50,000+', icon: DocumentDuplicateIcon },
+    { label: 'Concepts Extracted', value: '125,000+', icon: LightBulbIcon },
+    { label: 'Knowledge Connections', value: '350,000+', icon: ShareIcon },
+    { label: 'Active Learners', value: '2,500+', icon: AcademicCapIcon },
+  ]
+  
   return (
-    <>
+    <div className="min-h-screen bg-secondary-50">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 py-20 px-4 sm:px-6 lg:px-8 text-center">
-        <h1 className="text-4xl font-extrabold text-white sm:text-5xl md:text-6xl">
-          <span className="block">Intelligent Knowledge</span>
-          <span className="block">Aggregation Platform</span>
+      <div className="relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 overflow-hidden">
+        <div className="absolute inset-0 bg-black opacity-10"></div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="text-center"
+          >
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6">
+              <span className="block">Transform Your</span>
+              <span className="block bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
+                Learning Experience
+              </span>
         </h1>
-        <p className="mt-3 max-w-md mx-auto text-lg text-blue-100 sm:text-xl md:mt-5 md:max-w-3xl">
-          Discover, explore, and learn from our vast knowledge graph. Connect concepts, find insights, and expand your understanding.
-        </p>
-        
-        <div className="mt-10 max-w-2xl mx-auto">
+            <p className="max-w-3xl mx-auto text-xl md:text-2xl text-primary-100 mb-12 leading-relaxed">
+              Upload your homework, research papers, and study materials. Let AI extract insights, 
+              create knowledge maps, and accelerate your learning journey.
+            </p>
+            
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="max-w-2xl mx-auto mb-12"
+            >
           <SearchBox 
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onSubmit={handleSearch}
-            placeholder="Search for concepts, entities, or ask a question..."
+                placeholder="Search your knowledge base or ask a question..."
             fullWidth
-          />
+                className="shadow-2xl"
+              />
+            </motion.div>
+            
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.4 }}
+              className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+            >
+              <Link 
+                href="/search" 
+                className="inline-flex items-center px-8 py-4 bg-white text-primary-700 font-semibold rounded-xl hover:bg-primary-50 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+              >
+                <MagnifyingGlassIcon className="h-5 w-5 mr-2" />
+                Start Searching
+                <ArrowRightIcon className="h-4 w-4 ml-2" />
+              </Link>
+              <Link 
+                href="/content" 
+                className="inline-flex items-center px-8 py-4 bg-primary-500 text-white font-semibold rounded-xl hover:bg-primary-400 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+              >
+                <DocumentTextIcon className="h-5 w-5 mr-2" />
+                Upload Content
+                <ArrowRightIcon className="h-4 w-4 ml-2" />
+              </Link>
+            </motion.div>
+          </motion.div>
         </div>
         
-        <div className="mt-10 max-w-md mx-auto grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:max-w-4xl">
-          <Link href="/explore" className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md bg-white text-blue-800 hover:bg-gray-100 transition-colors">
-            <MapIcon className="h-5 w-5 mr-2" />
-            Explore Knowledge Graph
-          </Link>
-          <Link href="/search" className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md bg-white text-blue-800 hover:bg-gray-100 transition-colors">
-            <MagnifyingGlassIcon className="h-5 w-5 mr-2" />
-            Advanced Search
-          </Link>
-          <Link href="/dashboard" className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md bg-white text-blue-800 hover:bg-gray-100 transition-colors">
-            <ChartBarIcon className="h-5 w-5 mr-2" />
-            Visualize Data
-          </Link>
-          <Link href="/dashboard" className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md bg-white text-blue-800 hover:bg-gray-100 transition-colors">
-            <CircleStackIcon className="h-5 w-5 mr-2" />
-            Dashboard
-          </Link>
+        {/* Decorative elements */}
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-yellow-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
         </div>
       </div>
       
       {/* Features Section */}
-      <div className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
+      <div className="py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl font-extrabold text-gray-900 text-center">
-            Powerful Knowledge Platform
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-4xl md:text-5xl font-bold text-secondary-900 mb-6">
+              Powerful Learning Tools
           </h2>
-          <p className="mt-4 max-w-3xl mx-auto text-center text-lg text-gray-500">
-            Our platform combines advanced AI, knowledge graphs, and learning agents to create a comprehensive knowledge system.
-          </p>
+            <p className="max-w-3xl mx-auto text-xl text-secondary-600 leading-relaxed">
+              Our AI-powered platform combines cutting-edge technology with intuitive design 
+              to create the ultimate learning companion for students and researchers.
+            </p>
+          </motion.div>
           
-          <div className="mt-10">
-            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-              {/* Feature 1 */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-                <div className="flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
-                  </svg>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {features.map((feature, index) => {
+              const Icon = feature.icon;
+              return (
+                <motion.div
+                  key={feature.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: index * 0.1 }}
+                  viewport={{ once: true }}
+                  className="bg-white rounded-2xl p-8 shadow-sm border border-secondary-200 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1"
+                >
+                  <div className={`inline-flex items-center justify-center w-12 h-12 rounded-xl ${feature.color} mb-6`}>
+                    <Icon className="h-6 w-6" />
                 </div>
-                <h3 className="mt-5 text-lg font-medium text-gray-900">Intelligent Processing</h3>
-                <p className="mt-2 text-base text-gray-500">
-                  Our system processes information from diverse sources, extracting meaning, concepts, and entities.
-                </p>
-              </div>
-              
-              {/* Feature 2 */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-                <div className="flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" />
-                  </svg>
-                </div>
-                <h3 className="mt-5 text-lg font-medium text-gray-900">Knowledge Graph</h3>
-                <p className="mt-2 text-base text-gray-500">
-                  Explore relationships between concepts, entities, and ideas through our interactive knowledge graph.
-                </p>
-              </div>
-              
-              {/* Feature 3 */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-                <div className="flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.75-9l3-3 2.148 2.148A12.061 12.061 0 0116.5 7.605" />
-                  </svg>
-                </div>
-                <h3 className="mt-5 text-lg font-medium text-gray-900">Continuous Learning</h3>
-                <p className="mt-2 text-base text-gray-500">
-                  Our platform continuously learns from new information and user interactions to improve over time.
-                </p>
-              </div>
-            </div>
+                  <h3 className="text-xl font-semibold text-secondary-900 mb-4">
+                    {feature.title}
+                  </h3>
+                  <p className="text-secondary-600 leading-relaxed">
+                    {feature.description}
+                  </p>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </div>
       
       {/* Stats Section */}
-      <div className="bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="bg-white py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-2xl font-semibold text-gray-900 text-center">Platform Statistics</h2>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-4xl font-bold text-secondary-900 mb-4">
+              Trusted by Learners Worldwide
+            </h2>
+            <p className="text-xl text-secondary-600">
+              Join thousands of students and researchers who are accelerating their learning
+            </p>
+          </motion.div>
           
-          <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {/* Stat 1 */}
-            <div className="bg-white shadow rounded-lg p-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0 bg-blue-100 rounded-md p-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-blue-600">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
-                  </svg>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {stats.map((stat, index) => {
+              const Icon = stat.icon;
+              return (
+                <motion.div
+                  key={stat.label}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.6, delay: index * 0.1 }}
+                  viewport={{ once: true }}
+                  className="text-center"
+                >
+                  <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-100 text-primary-600 rounded-2xl mb-4">
+                    <Icon className="h-8 w-8" />
                 </div>
-                <div className="ml-5">
-                  <p className="text-sm font-medium text-gray-500 truncate">Entities</p>
-                  <p className="text-3xl font-semibold text-gray-900">12,580+</p>
+                  <div className="text-3xl font-bold text-secondary-900 mb-2">
+                    {stat.value}
+                </div>
+                  <div className="text-secondary-600 font-medium">
+                    {stat.label}
+              </div>
+                </motion.div>
+              );
+            })}
                 </div>
               </div>
             </div>
             
-            {/* Stat 2 */}
-            <div className="bg-white shadow rounded-lg p-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0 bg-blue-100 rounded-md p-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-blue-600">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
-                  </svg>
-                </div>
-                <div className="ml-5">
-                  <p className="text-sm font-medium text-gray-500 truncate">Relationships</p>
-                  <p className="text-3xl font-semibold text-gray-900">35,624+</p>
-                </div>
-              </div>
-            </div>
+      {/* CTA Section */}
+      <div className="bg-secondary-900 py-24 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+              Ready to Transform Your Learning?
+            </h2>
+            <p className="text-xl text-secondary-300 mb-12 leading-relaxed">
+              Start your journey towards smarter, more efficient learning. 
+              Upload your first document and experience the power of AI-driven insights.
+            </p>
             
-            {/* Stat 3 */}
-            <div className="bg-white shadow rounded-lg p-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0 bg-blue-100 rounded-md p-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-blue-600">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                  </svg>
-                </div>
-                <div className="ml-5">
-                  <p className="text-sm font-medium text-gray-500 truncate">Sources</p>
-                  <p className="text-3xl font-semibold text-gray-900">1,250+</p>
-                </div>
-              </div>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link 
+                href="/signup" 
+                className="inline-flex items-center px-8 py-4 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+              >
+                <AcademicCapIcon className="h-5 w-5 mr-2" />
+                Get Started Free
+                <ArrowRightIcon className="h-4 w-4 ml-2" />
+              </Link>
+              <Link 
+                href="/knowledge-graph" 
+                className="inline-flex items-center px-8 py-4 bg-secondary-800 text-white font-semibold rounded-xl hover:bg-secondary-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1 border border-secondary-700"
+              >
+                <ShareIcon className="h-5 w-5 mr-2" />
+                Explore Knowledge Graph
+              </Link>
             </div>
-            
-            {/* Stat 4 */}
-            <div className="bg-white shadow rounded-lg p-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0 bg-blue-100 rounded-md p-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-blue-600">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
-                  </svg>
-                </div>
-                <div className="ml-5">
-                  <p className="text-sm font-medium text-gray-500 truncate">Queries</p>
-                  <p className="text-3xl font-semibold text-gray-900">250k+</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          </motion.div>
         </div>
       </div>
-    </>
+    </div>
   )
 } 

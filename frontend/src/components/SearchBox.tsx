@@ -28,7 +28,7 @@ export default function SearchBox({
           type="text"
           value={value}
           onChange={onChange}
-          className="block w-full rounded-md border-0 bg-white py-3 pl-10 pr-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+          className="block w-full rounded-md border-0 bg-white py-3 pl-10 pr-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
           placeholder={placeholder}
         />
         <button
@@ -36,7 +36,7 @@ export default function SearchBox({
           className="absolute inset-y-0 right-0 flex items-center pr-3"
         >
           <span className="sr-only">Search</span>
-          <div className="rounded-md bg-primary-600 p-1 text-white hover:bg-primary-700">
+          <div className="rounded-md bg-primary-600 p-1 text-white hover:bg-primary-700 transition-colors">
             <MagnifyingGlassIcon className="h-5 w-5" aria-hidden="true" />
           </div>
         </button>
