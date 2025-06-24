@@ -19,6 +19,7 @@ import uvicorn
 from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, Query, Body, WebSocket, WebSocketDisconnect, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from fastapi.responses import FileResponse
 
 logger = logging.getLogger(__name__)
 
@@ -656,7 +657,66 @@ def create_api(coordinator):
             "timestamp": datetime.now().isoformat(),
             "websocket_connections": len(manager.active_connections)
         }
-    
+
+    @app.delete("/api/content/{file_id}")
+    async def delete_content_file(file_id: str, coordinator=Depends(get_coordinator)):
+        """Delete a content file."""
+        try:
+            import os
+            from pathlib import Path
+            
+            # Path to the uploads directory
+            uploads_dir = Path("frontend/uploads")
+            
+            # Find the file by ID (assuming ID is the filename without extension)
+            deleted = False
+            if uploads_dir.exists():
+                for file_path in uploads_dir.iterdir():
+                    if file_path.is_file():
+                        # Check if this is the file to delete (ID matches filename without extension)
+                        file_stem = file_path.stem
+                        if file_stem == file_id or file_path.name == file_id:
+                            os.remove(file_path)
+                            deleted = True
+                            break
+            
+            if deleted:
+                return {"success": True, "message": "File deleted successfully"}
+            else:
+                raise HTTPException(status_code=404, detail="File not found")
+                
+        except Exception as e:
+            logger.error(f"Error deleting file: {e}")
+            raise HTTPException(status_code=500, detail="Failed to delete file")
+
+    @app.get("/api/files/{file_id}")
+    async def serve_file(file_id: str):
+        """Serve uploaded files."""
+        try:
+            import os
+            from pathlib import Path
+            from fastapi.responses import FileResponse
+            
+            uploads_dir = Path("frontend/uploads")
+            
+            if uploads_dir.exists():
+                for file_path in uploads_dir.iterdir():
+                    if file_path.is_file():
+                        # Check if this is the requested file
+                        file_stem = file_path.stem
+                        if file_stem == file_id or file_path.name == file_id:
+                            return FileResponse(
+                                file_path,
+                                filename=file_path.name,
+                                media_type='application/octet-stream'
+                            )
+            
+            raise HTTPException(status_code=404, detail="File not found")
+            
+        except Exception as e:
+            logger.error(f"Error serving file: {e}")
+            raise HTTPException(status_code=500, detail="Failed to serve file")
+
     return app
 
 

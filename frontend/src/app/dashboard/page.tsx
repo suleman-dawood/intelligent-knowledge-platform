@@ -91,6 +91,47 @@ export default function Dashboard() {
     })
   }
   
+  const handleExportReport = () => {
+    // Generate and download a report
+    const reportData = {
+      timestamp: new Date().toISOString(),
+      stats: dashboardData?.stats,
+      trendingTopics: dashboardData?.trendingTopics,
+      recentQueries: dashboardData?.recentQueries?.slice(0, 10),
+      activityFeed: dashboardData?.activityFeed?.slice(0, 20)
+    }
+    
+    const dataStr = JSON.stringify(reportData, null, 2)
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr)
+    
+    const exportFileDefaultName = `dashboard-report-${new Date().toISOString().split('T')[0]}.json`
+    
+    const linkElement = document.createElement('a')
+    linkElement.setAttribute('href', dataUri)
+    linkElement.setAttribute('download', exportFileDefaultName)
+    linkElement.click()
+  }
+
+  const handleAnalytics = () => {
+    // Navigate to analytics page or open analytics modal
+    window.open('/analytics', '_blank')
+  }
+
+  const handleViewQueryResults = (queryId: string) => {
+    // Navigate to search results for this query
+    window.open(`/search?q=${encodeURIComponent(queryId)}`, '_blank')
+  }
+
+  const handleFindSimilarQueries = (queryText: string) => {
+    // Navigate to search with similar query
+    window.open(`/search?similar=${encodeURIComponent(queryText)}`, '_blank')
+  }
+
+  const handleTopicClick = (topicName: string) => {
+    // Navigate to knowledge graph filtered by this topic
+    window.open(`/knowledge-graph?topic=${encodeURIComponent(topicName)}`, '_blank')
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -108,11 +149,17 @@ export default function Dashboard() {
               </p>
             </div>
             <div className="flex gap-3">
-              <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+              <button 
+                onClick={handleExportReport}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+              >
                 <DocumentTextIcon className="h-4 w-4 mr-2" />
                 Export Report
               </button>
-              <button className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors">
+              <button 
+                onClick={handleAnalytics}
+                className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors"
+              >
                 <ChartBarIcon className="h-4 w-4 mr-2" />
                 Analytics
               </button>
@@ -180,7 +227,11 @@ export default function Dashboard() {
                 <div className="p-6">
                   <div className="space-y-4">
                     {dashboardData.trendingTopics.map((topic, index) => (
-                      <div key={topic.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                      <div 
+                        key={topic.name} 
+                        onClick={() => handleTopicClick(topic.name)}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                      >
                         <div className="flex items-center">
                           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-primary-600 text-sm font-medium mr-3">
                             {index + 1}
@@ -237,10 +288,16 @@ export default function Dashboard() {
                           </div>
                         </div>
                         <div className="flex gap-2 ml-4">
-                          <button className="text-xs text-primary-600 hover:text-primary-700 font-medium px-2 py-1 rounded hover:bg-primary-50 transition-colors">
+                          <button 
+                            onClick={() => handleViewQueryResults(query.id)}
+                            className="text-xs text-primary-600 hover:text-primary-700 font-medium px-2 py-1 rounded hover:bg-primary-50 transition-colors"
+                          >
                             View Results
                           </button>
-                          <button className="text-xs text-gray-600 hover:text-gray-700 font-medium px-2 py-1 rounded hover:bg-gray-100 transition-colors">
+                          <button 
+                            onClick={() => handleFindSimilarQueries(query.text)}
+                            className="text-xs text-gray-600 hover:text-gray-700 font-medium px-2 py-1 rounded hover:bg-gray-100 transition-colors"
+                          >
                             Similar
                           </button>
                         </div>

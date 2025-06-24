@@ -1,6 +1,7 @@
 import './globals.css'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import { AuthProvider } from '../contexts/AuthContext'
 import Header from '../components/layout/Header'
 import Footer from '../components/Footer'
 import NotificationSystem from '../components/ui/NotificationSystem'
@@ -20,14 +21,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <div className="min-h-screen flex flex-col bg-secondary-50">
-          <Header />
-          <main className="flex-1">
-            {children}
-          </main>
-          <Footer />
-          <NotificationSystem />
-        </div>
+        <AuthProvider>
+          <div className="min-h-screen flex flex-col bg-secondary-50">
+            <Header />
+            <main className="flex-1">
+              {children}
+            </main>
+            <Footer />
+            <NotificationSystem />
+          </div>
+        </AuthProvider>
       </body>
     </html>
   )

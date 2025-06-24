@@ -20,12 +20,16 @@ import {
   ExclamationTriangleIcon,
   PlusIcon,
   CloudArrowUpIcon,
+  TableCellsIcon,
 } from '@heroicons/react/24/outline';
+import UploadModal from '../../components/UploadModal';
+import DocumentViewer from '../../components/DocumentViewer';
 
 interface ContentItem {
   id: string;
   name: string;
-  type: 'pdf' | 'docx' | 'xlsx' | 'image' | 'video' | 'audio' | 'other';
+  displayName?: string;
+  type: 'pdf' | 'docx' | 'xlsx' | 'txt' | 'csv' | 'image' | 'video' | 'audio' | 'other';
   size: number;
   uploadDate: string;
   lastModified: string;
@@ -37,7 +41,7 @@ interface ContentItem {
 const ContentPage = () => {
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState<string>('all');
+  const [selectedFilter, setSelectedFilter] = useState('all');
   const [sortBy, setSortBy] = useState<'name' | 'date' | 'size'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
@@ -49,56 +53,22 @@ const ContentPage = () => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadFiles, setUploadFiles] = useState<FileList | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [viewerDocument, setViewerDocument] = useState<ContentItem | null>(null);
 
   // Fetch content from backend
   useEffect(() => {
     const fetchContent = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch('http://localhost:3100/api/content');
+        const response = await fetch('/api/content');
         if (response.ok) {
           const data = await response.json();
-          setContentItems(data.files || []);
+          setContentItems(data);
         } else {
-          // Fallback to mock data if API fails
-          const mockData: ContentItem[] = [
-            {
-              id: '1',
-              name: 'Machine Learning Fundamentals.pdf',
-              type: 'pdf',
-              size: 2048000,
-              uploadDate: '2024-01-15T10:30:00Z',
-              lastModified: '2024-01-15T10:30:00Z',
-              tags: ['machine learning', 'AI', 'fundamentals'],
-              summary: 'Comprehensive guide to machine learning concepts and algorithms.',
-            },
-            {
-              id: '2',
-              name: 'Data Analysis Report.xlsx',
-              type: 'xlsx',
-              size: 512000,
-              uploadDate: '2024-01-14T14:20:00Z',
-              lastModified: '2024-01-16T09:15:00Z',
-              tags: ['data analysis', 'statistics', 'report'],
-              summary: 'Statistical analysis of user behavior data with visualizations.',
-            },
-            {
-              id: '3',
-              name: 'Project Proposal.docx',
-              type: 'docx',
-              size: 256000,
-              uploadDate: '2024-01-13T16:45:00Z',
-              lastModified: '2024-01-13T16:45:00Z',
-              tags: ['proposal', 'project', 'business'],
-              summary: 'Detailed project proposal for the new AI initiative.',
-            },
-          ];
-          setContentItems(mockData);
+          console.error('Failed to fetch content');
         }
       } catch (error) {
-        console.error('Failed to fetch content:', error);
-        // Fallback to empty array
-        setContentItems([]);
+        console.error('Error fetching content:', error);
       } finally {
         setIsLoading(false);
       }
@@ -107,76 +77,103 @@ const ContentPage = () => {
     fetchContent();
   }, []);
 
-  const handleFileUpload = async () => {
-    if (!uploadFiles || uploadFiles.length === 0) return;
-    
-    setUploading(true);
-    const formData = new FormData();
-    
-    Array.from(uploadFiles).forEach((file) => {
-      formData.append('files', file);
-    });
-
+  const fetchContent = async () => {
     try {
-      const response = await fetch('http://localhost:3100/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
+      setIsLoading(true)
+      const response = await fetch('/api/content')
       if (response.ok) {
-        const result = await response.json();
-        // Refresh content list
-        const contentResponse = await fetch('http://localhost:3100/api/content');
-        if (contentResponse.ok) {
-          const data = await contentResponse.json();
-          setContentItems(data.files || []);
-        }
-        setShowUploadModal(false);
-        setUploadFiles(null);
+        const data = await response.json()
+        setContentItems(data)
       } else {
-        console.error('Upload failed');
+        console.error('Failed to fetch content')
       }
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('Error fetching content:', error)
     } finally {
-      setUploading(false);
+      setIsLoading(false)
     }
-  };
+  }
+
+  const handleFileUpload = async (files: File[], displayNames: string[]) => {
+    try {
+      // Create FormData for file upload
+      const formData = new FormData()
+      
+      files.forEach((file, index) => {
+        formData.append('files', file)
+        formData.append('displayNames', displayNames[index] || file.name)
+      })
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (response.ok) {
+        // Refresh content list after successful upload
+        await fetchContent()
+      } else {
+        throw new Error('Upload failed')
+      }
+    } catch (error) {
+      console.error('Error uploading files:', error)
+      throw error
+    }
+  }
 
   const getFileIcon = (type: string) => {
-    switch (type) {
+    switch (type.toLowerCase()) {
       case 'pdf':
       case 'docx':
-        return <DocumentTextIcon className="h-8 w-8" />;
+      case 'txt':
+        return <DocumentTextIcon className="h-5 w-5" />;
       case 'xlsx':
-        return <DocumentIcon className="h-8 w-8" />;
+      case 'csv':
+        return <TableCellsIcon className="h-5 w-5" />;
       case 'image':
-        return <PhotoIcon className="h-8 w-8" />;
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+        return <PhotoIcon className="h-5 w-5" />;
       case 'video':
-        return <FilmIcon className="h-8 w-8" />;
+      case 'mp4':
+      case 'avi':
+        return <FilmIcon className="h-5 w-5" />;
       case 'audio':
-        return <MusicalNoteIcon className="h-8 w-8" />;
+      case 'mp3':
+      case 'wav':
+        return <MusicalNoteIcon className="h-5 w-5" />;
       default:
-        return <ArchiveBoxIcon className="h-8 w-8" />;
+        return <ArchiveBoxIcon className="h-5 w-5" />;
     }
   };
 
   const getFileTypeColor = (type: string) => {
-    switch (type) {
+    switch (type.toLowerCase()) {
       case 'pdf':
-        return 'text-red-600 bg-red-50';
+        return 'bg-red-100 text-red-700';
       case 'docx':
-        return 'text-blue-600 bg-blue-50';
+        return 'bg-blue-100 text-blue-700';
       case 'xlsx':
-        return 'text-green-600 bg-green-50';
+      case 'csv':
+        return 'bg-green-100 text-green-700';
       case 'image':
-        return 'text-purple-600 bg-purple-50';
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+        return 'bg-purple-100 text-purple-700';
       case 'video':
-        return 'text-orange-600 bg-orange-50';
+      case 'mp4':
+      case 'avi':
+        return 'bg-orange-100 text-orange-700';
       case 'audio':
-        return 'text-pink-600 bg-pink-50';
+      case 'mp3':
+      case 'wav':
+        return 'bg-yellow-100 text-yellow-700';
       default:
-        return 'text-secondary-600 bg-secondary-50';
+        return 'bg-gray-100 text-gray-700';
     }
   };
 
@@ -200,7 +197,8 @@ const ContentPage = () => {
 
   const filteredAndSortedItems = contentItems
     .filter(item => {
-      const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      const matchesSearch = item.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            item.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
       const matchesFilter = selectedFilter === 'all' || item.type === selectedFilter;
       return matchesSearch && matchesFilter;
@@ -209,7 +207,7 @@ const ContentPage = () => {
       let comparison = 0;
       switch (sortBy) {
         case 'name':
-          comparison = a.name.localeCompare(b.name);
+          comparison = (a.displayName || a.name).localeCompare(b.displayName || b.name);
           break;
         case 'date':
           comparison = new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime();
@@ -239,31 +237,60 @@ const ContentPage = () => {
 
   const handleRename = (item: ContentItem) => {
     setEditingItem(item);
-    setEditName(item.name);
+    setEditName(item.displayName || item.name);
   };
 
-  const handleSaveRename = () => {
-    if (editingItem && editName.trim()) {
-      setContentItems(prev => 
-        prev.map(item => 
-          item.id === editingItem.id 
-            ? { ...item, name: editName.trim() }
-            : item
-        )
-      );
+  const handleSaveRename = async () => {
+    if (!editingItem) return;
+    
+    try {
+      // Update the item locally (in a real app, you'd send this to the backend)
+      setContentItems(prev => prev.map(item => 
+        item.id === editingItem.id 
+          ? { ...item, displayName: editName }
+          : item
+      ));
       setEditingItem(null);
-      setEditName('');
+    } catch (error) {
+      console.error('Error renaming item:', error);
     }
   };
 
-  const handleDelete = (id: string) => {
-    setContentItems(prev => prev.filter(item => item.id !== id));
-    setShowDeleteConfirm(null);
+  const handleDelete = async (id: string) => {
+    try {
+      const response = await fetch(`/api/content/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        // Remove from local state
+        setContentItems(prev => prev.filter(item => item.id !== id));
+        setShowDeleteConfirm(null);
+      } else {
+        throw new Error('Failed to delete file');
+      }
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      alert('Failed to delete file. Please try again.');
+    }
   };
 
-  const handleBulkDelete = () => {
-    setContentItems(prev => prev.filter(item => !selectedItems.includes(item.id)));
-    setSelectedItems([]);
+  const handleBulkDelete = async () => {
+    try {
+      // Delete all selected items
+      const deletePromises = selectedItems.map(id => 
+        fetch(`/api/content/${id}`, { method: 'DELETE' })
+      );
+      
+      await Promise.all(deletePromises);
+      
+      // Remove from local state
+      setContentItems(prev => prev.filter(item => !selectedItems.includes(item.id)));
+      setSelectedItems([]);
+    } catch (error) {
+      console.error('Error deleting files:', error);
+      alert('Failed to delete some files. Please try again.');
+    }
   };
 
   const filterOptions = [

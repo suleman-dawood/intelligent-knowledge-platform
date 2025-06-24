@@ -4,10 +4,12 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { useAuth } from '../../contexts/AuthContext';
 import { EyeIcon, EyeSlashIcon, LockClosedIcon, EnvelopeIcon } from '@heroicons/react/24/outline';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -32,21 +34,12 @@ export default function LoginPage() {
     setError('');
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const success = await login(formData.email, formData.password);
       
-      // Demo login - accept admin@example.com with any password
-      if (formData.email === 'admin@example.com') {
-        // Store user session (in a real app, use proper authentication)
-        localStorage.setItem('user', JSON.stringify({
-          email: formData.email,
-          name: 'Admin User',
-          role: 'admin'
-        }));
-        
+      if (success) {
         router.push('/dashboard');
       } else {
-        setError('Invalid credentials. Use admin@example.com for demo.');
+        setError('Invalid credentials. Please check your email and password.');
       }
     } catch (err) {
       setError('An error occurred during login. Please try again.');
