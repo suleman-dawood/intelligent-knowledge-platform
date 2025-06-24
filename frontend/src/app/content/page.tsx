@@ -313,7 +313,7 @@ const ContentPage = () => {
                 <select
                   value={selectedFilter}
                   onChange={(e) => setSelectedFilter(e.target.value)}
-                  className="appearance-none bg-white border border-secondary-300 rounded-lg px-4 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-secondary-900"
+                  className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900"
                 >
                   {filterOptions.map(option => (
                     <option key={option.value} value={option.value}>
@@ -329,7 +329,7 @@ const ContentPage = () => {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as 'name' | 'date' | 'size')}
-                  className="appearance-none bg-white border border-secondary-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-secondary-900"
+                  className="appearance-none bg-white border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900"
                 >
                   <option value="date">Sort by Date</option>
                   <option value="name">Sort by Name</option>
@@ -415,7 +415,7 @@ const ContentPage = () => {
                               type="text"
                               value={editName}
                               onChange={(e) => setEditName(e.target.value)}
-                              className="flex-1 px-2 py-1 border border-secondary-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                              className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-900"
                               onKeyPress={(e) => e.key === 'Enter' && handleSaveRename()}
                               autoFocus
                             />
